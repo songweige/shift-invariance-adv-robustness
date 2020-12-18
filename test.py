@@ -16,7 +16,7 @@ from utils import progress_bar
 
 from DDN import DDN
 
-parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
@@ -86,11 +86,6 @@ if device == 'cuda':
     cudnn.benchmark = True
 
 attacker = DDN(steps=100, device=torch.device('cuda'))
-
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                      momentum=0.9, weight_decay=5e-4)
 
 checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%args.model)
 net.load_state_dict(checkpoint['net'])

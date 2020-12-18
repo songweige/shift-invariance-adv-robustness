@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 import os
 import argparse
 
-from models.simple import simple_FC, simple_Conv
+from models.simple import simple_FC, simple_Conv, simple_Conv_max
 from utils import progress_bar
 
 
@@ -61,6 +61,11 @@ elif args.model == 'Conv':
     net= simple_Conv(args.n_hidden)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
     net = net.cuda()
+elif args.model == 'Conv_max':
+    net= simple_Conv_max(args.n_hidden)
+    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    net = net.cuda()
+
 
 net = net.to(device)
 if device == 'cuda':

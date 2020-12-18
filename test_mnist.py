@@ -67,11 +67,15 @@ def l2_norm(x: torch.Tensor) -> torch.Tensor:
 
 # Model
 if args.model == 'FC':
-    net= simple_FC(1000)
+    net= simple_FC(args.n_hidden)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
     net = net.cuda()
 elif args.model == 'Conv':
-    net= simple_Conv(1000)
+    net= simple_Conv(args.n_hidden)
+    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    net = net.cuda()
+elif args.model == 'Conv_max':
+    net= simple_Conv_max(args.n_hidden)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
     net = net.cuda()
 

@@ -31,3 +31,20 @@ class simple_Conv(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.classifier(out)
         return out
+
+
+
+class simple_Conv_max(nn.Module):
+    def __init__(self, n_hidden):
+        super(simple_Conv_max, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(1, n_hidden, kernel_size=28, padding=1, padding_mode='circular'),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool2d(1)
+        )
+        self.classifier = nn.Linear(n_hidden, 10)
+    def forward(self, x):
+        out = self.features(x)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        return out
