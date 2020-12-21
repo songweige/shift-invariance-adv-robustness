@@ -11,13 +11,14 @@ import torchvision.transforms as transforms
 import os
 import argparse
 
-from models.simple import simple_FC, simple_Conv, simple_Conv_max
+from models.simple import *
 from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
+parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
 parser.add_argument('--verbos', default=0, type=int, help='level of verbos')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
@@ -53,18 +54,30 @@ testloader = torch.utils.data.DataLoader(
 
 # Model
 if args.model == 'FC':
-    print('==> Building model..')
-    net= simple_FC(args.n_hidden)
+    net = simple_FC(args.n_hidden)
+    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    net = net.cuda()
+elif args.model == 'FC_linear':
+    net = simple_FC_linear(args.n_hidden)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
     net = net.cuda()
 elif args.model == 'Conv':
-    net= simple_Conv(args.n_hidden)
+    net = simple_Conv(args.n_hidden, args.kernel_size)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
     net = net.cuda()
 elif args.model == 'Conv_max':
-    net= simple_Conv_max(args.n_hidden)
+    net = simple_Conv_max(args.n_hidden, args.kernel_size)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
     net = net.cuda()
+elif args.model == 'Conv_linear':
+    net = simple_Conv_linear(args.n_hidden, args.kernel_size)
+    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    net = net.cuda()
+elif args.model == 'Conv_linear_max':
+    net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
+    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    net = net.cuda()
+
 
 
 net = net.to(device)
@@ -148,5 +161,8 @@ def test(epoch, net, model_name):
 
 for epoch in range(start_epoch, start_epoch+200):
     train(epoch, net)
-    test(epoch, net, 'simple_%s_%d'%(args.model, args.n_hidden))
+    if 'Conv' in args.model and args.kernel_size != 28:
+        test(epoch, net, 'simple_%s_%d_%d'%(args.model, args.kernel_size, args.n_hidden))
+    else:
+        test(epoch, net, 'simple_%s_%d'%(args.model, args.n_hidden))
     scheduler.step()
