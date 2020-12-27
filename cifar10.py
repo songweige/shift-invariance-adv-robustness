@@ -17,6 +17,7 @@ from utils import progress_bar
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--verbos', default=0, type=int, help='level of verbos')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
@@ -61,9 +62,11 @@ def get_net(model):
     elif model.startswith('resnet'):
         n_layer = model.split('_')[-1]
         if 'no_pooling' in model:
-            return resnet_dict[n_layer](False)
+            return resnet_dict[n_layer](pooling=False)
+        elif 'max_pooling' in model:
+            return resnet_dict[n_layer](pooling=True, max_pooling=True)
         else:
-            return resnet_dict[n_layer](True)
+            return resnet_dict[n_layer](pooling=True, max_pooling=False)
 
 
 # Model
@@ -74,6 +77,9 @@ if device == 'cuda':
     # net = torch.nn.DataParallel(net)
     net = net.cuda()
     cudnn.benchmark = True
+
+
+print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
 
 if args.resume:
     # Load checkpoint.
@@ -109,8 +115,8 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        if args.verbos > 1:
+            progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 
@@ -130,8 +136,8 @@ def test(epoch):
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
-
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            if args.verbos > 1:
+                progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.

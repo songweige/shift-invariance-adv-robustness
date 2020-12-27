@@ -10,11 +10,17 @@ import torchvision.transforms as transforms
 
 import os
 import argparse
+import numpy as np
 
 from models import *
+from models.simple import *
 from utils import progress_bar
 
 from DDN import DDN
+
+from art.attacks.evasion import FastGradientMethod
+from art.attacks.evasion import ProjectedGradientDescentPyTorch
+from art.estimators.classification import PyTorchClassifier
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -62,9 +68,11 @@ def get_net(model):
     elif model.startswith('resnet'):
         n_layer = model.split('_')[-1]
         if 'no_pooling' in model:
-            return resnet_dict[n_layer](False)
+            return resnet_dict[n_layer](pooling=False)
+        elif 'max_pooling' in model:
+            return resnet_dict[n_layer](pooling=True, max_pooling=True)
         else:
-            return resnet_dict[n_layer](True)
+            return resnet_dict[n_layer](pooling=True, max_pooling=False)
 
 
 def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
@@ -85,7 +93,10 @@ if device == 'cuda':
     net = net.cuda()
     cudnn.benchmark = True
 
-attacker = DDN(steps=100, device=torch.device('cuda'))
+
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=args.lr,
+                      momentum=0.9, weight_decay=5e-4)
 
 checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%args.model)
 net.load_state_dict(checkpoint['net'])
@@ -93,33 +104,30 @@ best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']
 
 
-adv_norm = 0.
-correct = 0
-adv_correct = 0
-total = 0
-for batch_idx, (inputs, targets) in enumerate(testloader):
-    inputs, targets = inputs.to(device), targets.to(device)
-    adv = attacker.attack(net, inputs.to(device), labels=targets.to(device), targeted=False)
-    outputs = net(inputs)
-    _, predicted = outputs.max(1)
-    adv_outputs = net(adv)
-    _, adv_predicted = adv_outputs.max(1)
-    total += targets.size(0)
-    correct += predicted.eq(targets).sum().item()
-    adv_correct += adv_predicted.eq(targets).sum().item()
-    adv_norm += l2_norm(adv - inputs.to(device)).sum().item()
-    progress_bar(batch_idx, len(testloader), 'Adv Acc: %.3f | Acc: %.3f%% (%d/%d)'
-                 % (100.*adv_correct/total, 100.*correct/total, correct, total))
+# adv_norm = 0.
+# correct = 0
+# adv_correct = 0
+# total = 0
+# for batch_idx, (inputs, targets) in enumerate(testloader):
+#     inputs, targets = inputs.to(device), targets.to(device)
+#     adv = attacker.attack(net, inputs.to(device), labels=targets.to(device), targeted=False)
+#     outputs = net(inputs)
+#     _, predicted = outputs.max(1)
+#     adv_outputs = net(adv)
+#     _, adv_predicted = adv_outputs.max(1)
+#     total += targets.size(0)
+#     correct += predicted.eq(targets).sum().item()
+#     adv_correct += adv_predicted.eq(targets).sum().item()
+#     adv_norm += l2_norm(adv - inputs.to(device)).sum().item()
+#     progress_bar(batch_idx, len(testloader), 'Adv Acc: %.3f | Acc: %.3f%% (%d/%d)'
+#                  % (100.*adv_correct/total, 100.*correct/total, correct, total))
 
 
-print('Raw done in error: {:.2f}%.'.format(100.*correct/total))
-print('DDN done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
-    100.*adv_correct/total,
-    adv_norm/total
-))
-
-
-
+# print('Raw done in error: {:.2f}%.'.format(100.*correct/total))
+# print('DDN done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
+#     100.*adv_correct/total,
+#     adv_norm/total
+# ))
 
 
 # pred_orig = net(inputs.to(device)).argmax(dim=1).cpu()
@@ -131,3 +139,29 @@ print('DDN done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
 #     (pred_ddn != targets).float().mean().item() * 100,
 #     l2_norm(adv - inputs.to(device)).mean().item()
 # ))
+
+
+classifier = PyTorchClassifier(
+    model=net,
+    loss=criterion,
+    optimizer=optimizer,
+    clip_values=(0., 1.),
+    input_shape=(1, 28, 28),
+    nb_classes=10,
+)
+print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
+
+# attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.05, 0.1, 0.15, 0.2, 0.25]]]
+attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
+for norm, epsilons in attack_params:
+    for epsilon in epsilons:
+        attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
+        # attack = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
+        adv_correct = 0
+        total = 0
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            inputs_adv = attack.generate(x=inputs)
+            adv_predicted = classifier.predict(inputs_adv).argmax(1)
+            adv_correct += (adv_predicted==targets.numpy()).sum().item()
+            total += targets.size(0)
+        print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct/total))
