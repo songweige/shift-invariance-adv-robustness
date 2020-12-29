@@ -1,4 +1,4 @@
-n_hiddens = [5, 10, 50, 100, 500, 1000]
+n_hiddens = [5, 10, 50, 100, 500, 1000, 5000]
 for n_hidden in n_hiddens[::-1]:
 	# with open('FC_linear_%d.txt'%n_hidden) as f:
 	# 	lines = f.readlines()
@@ -25,6 +25,7 @@ for n_hidden in n_hiddens[::-1]:
 
 
 n_hiddens = [5, 10, 50, 100, 500, 1000, 5000]
+n_hiddens = [10000]
 for n_hidden in n_hiddens[::-1]:
 	with open('FC_linear_%d.txt'%n_hidden) as f:
 		lines = f.readlines()
@@ -41,8 +42,8 @@ for n_hidden in n_hiddens[::-1]:
 ############################################################################################
 ### Nice print results of ResNet on Cifar 10
 ############################################################################################
-n_hiddens = [18, 34, 50, 101, 152]
 n_hiddens = [18, 34, 50]
+n_hiddens = [18, 34, 50, 101, 152]
 for n_hidden in n_hiddens[::-1]:
 	with open('resnet_%d.txt'%n_hidden) as f:
 		lines = f.readlines()

@@ -67,7 +67,13 @@ def get_net(model):
             return resnet_dict[n_layer](pooling=True, max_pooling=True)
         else:
             return resnet_dict[n_layer](pooling=True, max_pooling=False)
-
+    elif model.startswith('wide_resnet'):
+        n_layer = int(model.split('_')[-2])
+        widen_factor = int(model.split('_')[-1])
+        if 'max_pooling' in model:
+            return Wide_ResNet_MaxPool(depth=n_layer, widen_factor=widen_factor)
+        else:
+            return Wide_ResNet(depth=n_layer, widen_factor=widen_factor)
 
 # Model
 print('==> Building model..')
