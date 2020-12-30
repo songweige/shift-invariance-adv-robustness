@@ -7,7 +7,7 @@ from torch.autograd import Variable
 import numpy as np
 
 def conv3x3(in_planes, out_planes, stride=1):
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=True)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=True, padding_mode='circular')
 
 def conv_init(m):
     classname = m.__class__.__name__
@@ -22,15 +22,15 @@ class wide_basic(nn.Module):
     def __init__(self, in_planes, planes, dropout_rate, stride=1):
         super(wide_basic, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, padding=1, bias=True)
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, padding=1, bias=True, padding_mode='circular')
         self.dropout = nn.Dropout(p=dropout_rate)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=True)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=True, padding_mode='circular')
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, planes, kernel_size=1, stride=stride, bias=True),
+                nn.Conv2d(in_planes, planes, kernel_size=1, stride=stride, bias=True, padding_mode='circular'),
             )
 
     def forward(self, x):
@@ -124,6 +124,18 @@ class Wide_ResNet_MaxPool(nn.Module):
 
 if __name__ == '__main__':
     net=Wide_ResNet(28, 10, 0.3, 10)
-    y = net(Variable(torch.randn(1,3,32,32)))
-
-    print(y.size())
+    net.eval()
+    # Randomly generate a cifar10-like sample
+    X = torch.randn(1, 3, 32, 32)
+    # First shift i pixels right then i pixels down
+    X_shift_right = torch.zeros([32, 3, 32, 32])
+    X_shift = torch.zeros([32, 3, 32, 32])
+    for i in range(1, 32):
+        X_shift_right[i, :, :, :i] = X[0, :, :, (32-i):]
+        X_shift_right[i, :, :, i:] = X[0, :, :, :(32-i)]
+        X_shift[i, :, :i, :] = X_shift_right[i, :, (32-i):, :]
+        X_shift[i, :, i:, :] = X_shift_right[i, :, :(32-i), :]
+    # compare the logits
+    y = net(X)
+    y_shift = net(X_shift)
+    torch.isclose(y_shift, y)
