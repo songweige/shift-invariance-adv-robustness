@@ -62,18 +62,6 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 
 resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '152':ResNet152}
 
-def get_net(model):
-    if model.startswith('VGG'):
-        return VGG(model)
-    elif model.startswith('resnet'):
-        n_layer = model.split('_')[-1]
-        if 'no_pooling' in model:
-            return resnet_dict[n_layer](pooling=False)
-        elif 'max_pooling' in model:
-            return resnet_dict[n_layer](pooling=True, max_pooling=True)
-        else:
-            return resnet_dict[n_layer](pooling=True, max_pooling=False)
-
 
 def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
     flattened = x.view(x.shape[0], -1)

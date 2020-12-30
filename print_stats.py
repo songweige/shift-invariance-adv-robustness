@@ -1,4 +1,4 @@
-n_hiddens = [5, 10, 50, 100, 500, 1000, 5000]
+n_hiddens = [5, 10, 50, 100, 500, 1000, 5000, 10000]
 for n_hidden in n_hiddens[::-1]:
 	# with open('FC_linear_%d.txt'%n_hidden) as f:
 	# 	lines = f.readlines()
