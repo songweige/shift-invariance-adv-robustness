@@ -54,7 +54,6 @@ testloader = torch.utils.data.DataLoader(
 classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
 
-resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '152':ResNet152}
 
 # Model
 print('==> Building model..')

@@ -3,6 +3,8 @@ from .resnet import *
 from .wide_resnet import *
 from .simple import *
 
+resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '152':ResNet152}
+
 def get_net(model):
     if model.startswith('VGG'):
         return VGG(model)
