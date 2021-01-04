@@ -66,34 +66,33 @@ def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
 def l2_norm(x: torch.Tensor) -> torch.Tensor:
     return squared_l2_norm(x).sqrt()
 
+resnet_dict = {'18':ResNet_MNIST_18, '34':ResNet_MNIST_34, '50':ResNet_MNIST_50, '101':ResNet_MNIST_101, '152':ResNet_MNIST_152}
 
 # Model
 if args.model == 'FC':
     net = simple_FC(args.n_hidden)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'FC_linear':
     net = simple_FC_linear(args.n_hidden)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv':
     net = simple_Conv(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv_max':
     net = simple_Conv_max(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv_linear':
     net = simple_Conv_linear(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv_linear_max':
     net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
+elif args.model.startswith('resnet'):
+    n_layer = args.model.split('_')[-1]
+    if 'no_pooling' in args.model:
+        net = resnet_dict[n_layer](pooling=False)
+    elif 'max_pooling' in args.model:
+        net = resnet_dict[n_layer](pooling=True, max_pooling=True)
+    else:
+        net = resnet_dict[n_layer](pooling=True, max_pooling=False)
 
 
+print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+net = net.cuda()
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
@@ -101,9 +100,9 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr,
 
 
 if 'Conv' in args.model and args.kernel_size != 28:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
 else:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/simple_%s_%d.pth'%(args.model, args.n_hidden))
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d.pth'%(args.model, args.n_hidden))
 
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']

@@ -30,8 +30,8 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 # Data
 print('==> Preparing data..')
 transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
+    # transforms.RandomCrop(32, padding=4),
+    # transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
@@ -70,8 +70,8 @@ print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
 if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%args.model)
+    assert os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10'), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -135,9 +135,9 @@ def test(epoch):
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool'):
-            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%args.model)
+        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10'):
+            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10')
+        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
         best_acc = acc
 
 

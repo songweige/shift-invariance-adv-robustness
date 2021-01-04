@@ -82,11 +82,13 @@ if device == 'cuda':
     cudnn.benchmark = True
 
 
+print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
 
-checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%args.model)
+checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']

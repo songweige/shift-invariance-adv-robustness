@@ -11,6 +11,7 @@ import torchvision.transforms as transforms
 import os
 import argparse
 
+from models import *
 from models.simple import *
 from utils import progress_bar
 
@@ -51,34 +52,33 @@ testset = torchvision.datasets.MNIST(
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False, num_workers=2)
 
+resnet_dict = {'18':ResNet_MNIST_18, '34':ResNet_MNIST_34, '50':ResNet_MNIST_50, '101':ResNet_MNIST_101, '152':ResNet_MNIST_152}
 
 # Model
 if args.model == 'FC':
     net = simple_FC(args.n_hidden)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'FC_linear':
     net = simple_FC_linear(args.n_hidden)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv':
     net = simple_Conv(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv_max':
     net = simple_Conv_max(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv_linear':
     net = simple_Conv_linear(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
 elif args.model == 'Conv_linear_max':
     net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
+elif args.model.startswith('resnet'):
+    n_layer = args.model.split('_')[-1]
+    if 'no_pooling' in args.model:
+        net = resnet_dict[n_layer](pooling=False)
+    elif 'max_pooling' in args.model:
+        net = resnet_dict[n_layer](pooling=True, max_pooling=True)
+    else:
+        net = resnet_dict[n_layer](pooling=True, max_pooling=False)
 
 
+print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+net = net.cuda()
 
 net = net.to(device)
 if device == 'cuda':
@@ -89,8 +89,8 @@ if device == 'cuda':
 if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%args.model)
+    assert os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist'), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/%s.pth'%args.model)
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -153,9 +153,9 @@ def test(epoch, net, model_name):
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool'):
-            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/%s.pth'%model_name)
+        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist'):
+            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist')
+        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist/%s.pth'%model_name)
         best_acc = acc
 
 
