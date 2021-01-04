@@ -1,7 +1,10 @@
 from .vgg import *
 from .resnet import *
+from .resnet_mnist import *
 from .wide_resnet import *
 from .simple import *
+from .alex_net import *
+from .GoogleNet import *
 
 resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '152':ResNet152}
 

@@ -35,7 +35,7 @@ class VGG(nn.Module):
             elif x == 'L':
                 layers += [nn.Conv2d(in_channels, in_channels, kernel_size=2, stride=2)]
             else:
-                layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
+                layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1, padding_mode='circular'),
                            nn.BatchNorm2d(x),
                            nn.ReLU(inplace=True)]
                 in_channels = x
