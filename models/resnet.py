@@ -102,9 +102,9 @@ class ResNet(nn.Module):
         return out
 
 
-class ResNet_NoPooling(nn.Module):
+class ResNet_FCPooling(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
-        super(ResNet_NoPooling, self).__init__()
+        super(ResNet_FCPooling, self).__init__()
         self.in_planes = 64
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3,
@@ -116,7 +116,7 @@ class ResNet_NoPooling(nn.Module):
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
         # self.conv2 = nn.Conv2d(512, 512, kernel_size=4,
         #                        stride=4, bias=False, padding_mode='circular')
-        self.linear = nn.Linear(512*block.expansion*16, num_classes)
+        self.linear = nn.Linear(512*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -132,7 +132,7 @@ class ResNet_NoPooling(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
-        # out = self.conv2(out)
+        out = out[:, :, 0, 0]
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
@@ -172,45 +172,45 @@ class ResNet_MaxPooling(nn.Module):
         return out
 
 
-def ResNet18(pooling=True, max_pooling=False):
-    if not pooling:
-        return ResNet_NoPooling(BasicBlock, [2, 2, 2, 2])
+def ResNet18(fc_pooling=False, max_pooling=False):
+    if fc_pooling:
+        return ResNet_FCPooling(BasicBlock, [2, 2, 2, 2])
     elif max_pooling:
         return ResNet_MaxPooling(BasicBlock, [2, 2, 2, 2])
     else:
         return ResNet(BasicBlock, [2, 2, 2, 2])
 
 
-def ResNet34(pooling=True, max_pooling=False):
-    if not pooling:
-        return ResNet_NoPooling(BasicBlock, [3, 4, 6, 3])
+def ResNet34(fc_pooling=False, max_pooling=False):
+    if fc_pooling:
+        return ResNet_FCPooling(BasicBlock, [3, 4, 6, 3])
     elif max_pooling:
         return ResNet_MaxPooling(BasicBlock, [3, 4, 6, 3])
     else:
         return ResNet(BasicBlock, [3, 4, 6, 3])
 
 
-def ResNet50(pooling=True, max_pooling=False):
-    if not pooling:
-        return ResNet_NoPooling(Bottleneck, [3, 4, 6, 3])
+def ResNet50(fc_pooling=False, max_pooling=False):
+    if fc_pooling:
+        return ResNet_FCPooling(Bottleneck, [3, 4, 6, 3])
     elif max_pooling:
         return ResNet_MaxPooling(Bottleneck, [3, 4, 6, 3])
     else:
         return ResNet(Bottleneck, [3, 4, 6, 3])
 
 
-def ResNet101(pooling=True, max_pooling=False):
-    if not pooling:
-        return ResNet_NoPooling(Bottleneck, [3, 4, 23, 3])
+def ResNet101(fc_pooling=False, max_pooling=False):
+    if fc_pooling:
+        return ResNet_FCPooling(Bottleneck, [3, 4, 23, 3])
     elif max_pooling:
         return ResNet_MaxPooling(Bottleneck, [3, 4, 23, 3])
     else:
         return ResNet(Bottleneck, [3, 4, 23, 3])
 
 
-def ResNet152(pooling=True, max_pooling=False):
-    if not pooling:
-        return ResNet_NoPooling(Bottleneck, [3, 8, 36, 3])
+def ResNet152(fc_pooling=False, max_pooling=False):
+    if fc_pooling:
+        return ResNet_FCPooling(Bottleneck, [3, 8, 36, 3])
     elif max_pooling:
         return ResNet_MaxPooling(Bottleneck, [3, 8, 36, 3])
     else:
@@ -218,7 +218,7 @@ def ResNet152(pooling=True, max_pooling=False):
 
 
 def test():
-    net = ResNet18(pooling=True, max_pooling=True)
+    net = ResNet18(fc_pooling=True, max_pooling=True)
     net.eval()
     # Randomly generate a cifar10-like sample
     X = torch.randn(1, 3, 32, 32)

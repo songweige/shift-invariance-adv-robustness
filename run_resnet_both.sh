@@ -10,4 +10,3 @@ python cifar10.py --model resnet_50
 python test_cifar.py --model resnet_50 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_50.txt
 python cifar10.py --model resnet_max_pooling_50
 python test_cifar.py --model resnet_max_pooling_50 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_max_pooling_50.txt
-
