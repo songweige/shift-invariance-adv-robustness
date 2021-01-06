@@ -18,6 +18,7 @@ from utils import progress_bar
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--verbos', default=0, type=int, help='level of verbos')
+parser.add_argument('--n_data', default=50000, type=int, help='level of verbos')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
@@ -43,6 +44,10 @@ transform_test = transforms.Compose([
 
 trainset = torchvision.datasets.CIFAR10(
     root='/fs/vulcan-datasets/CIFAR/', train=True, download=True, transform=transform_train)
+
+if args.n_data < 50000:
+    trainset = torch.utils.data.Subset(trainset, indices=np.arange(args.n_data))
+
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=128, shuffle=True, num_workers=2)
 
@@ -71,7 +76,10 @@ if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
     assert os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
+    if args.n_data < 50000:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s_%d.pth'%(args.model, args.n_data))
+    else:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -137,7 +145,10 @@ def test(epoch):
         }
         if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10'):
             os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
+        if args.n_data < 50000:
+            torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s_%d.pth'%(args.model, args.n_data))
+        else:
+            torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
         best_acc = acc
 
 
