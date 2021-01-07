@@ -42,20 +42,20 @@ for n_hidden in n_hiddens[::-1]:
 ############################################################################################
 ### Nice print results of ResNet on Cifar 10
 ############################################################################################
-n_hiddens = [18, 34, 50]
 n_hiddens = [18, 34, 50, 101, 152]
+n_hiddens = [18, 34, 50]
 for n_hidden in n_hiddens[::-1]:
-	with open('resnet_%d.txt'%n_hidden) as f:
+	with open('cifar10/resnet_circular_padding_noaug/resnet_%d.txt'%n_hidden) as f:
 		lines = f.readlines()
-		clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[4:5]])
-		l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:10]])
-		linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[10:]])
+		clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:6]])
+		l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[6:11]])
+		linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[11:]])
 		print('  '.join([clean_acc, l2_acc, linf_acc]))
-	with open('resnet_max_pooling_%d.txt'%n_hidden) as f:
+	with open('cifar10/resnet_circular_padding_noaug/resnet_max_pooling_%d.txt'%n_hidden) as f:
 		lines = f.readlines()
-		clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[4:5]])
-		l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:10]])
-		linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[10:]])
+		clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:6]])
+		l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[6:11]])
+		linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[11:]])
 		print('  '.join([clean_acc, l2_acc, linf_acc]))
 
 
@@ -75,15 +75,15 @@ for n_hidden in n_hiddens[::-1]:
 		
 
 
-n_hiddens = [28]
+n_hiddens = [28, 40]
 for n_hidden in n_hiddens[::-1]:
-	with open('resnet_zero_padding/wide_resnet_%d_10.txt'%n_hidden) as f:
+	with open('wide_resnet_%d_10.txt'%n_hidden) as f:
 		lines = f.readlines()
 		clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:6]])
 		l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[6:11]])
 		linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[11:]])
 		print('  '.join([clean_acc, l2_acc, linf_acc]))
-	with open('resnet_zero_padding/wide_resnet_max_pooling_%d_10.txt'%n_hidden) as f:
+	with open('wide_resnet_max_pooling_%d_10.txt'%n_hidden) as f:
 		lines = f.readlines()
 		clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:6]])
 		l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[6:11]])
@@ -97,3 +97,21 @@ for n_hidden in n_hiddens[::-1]:
 		lines = f.readlines()
 		print(lines[2].rstrip('%\n').split()[-1])
 		print('\n')
+
+
+ns_data = [1000, 5000, 10000]
+n_hiddens = [18, 34, 50]
+for n_data in ns_data:
+	for n_hidden in n_hiddens[::-1]:
+		with open('cifar10/resnet_circular_padding_noaug_limited_data/resnet_%d_%d.txt'%(n_hidden, n_data)) as f:
+			lines = f.readlines()
+			clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[4:5]])
+			l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:10]])
+			linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[10:]])
+			print('  '.join([clean_acc, l2_acc, linf_acc]))
+		with open('cifar10/resnet_circular_padding_noaug_limited_data/resnet_max_pooling_%d_%d.txt'%(n_hidden, n_data)) as f:
+			lines = f.readlines()
+			clean_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[4:5]])
+			l2_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[5:10]])
+			linf_acc = ' '.join([line.rstrip('%\n').split()[-1] for line in lines[10:]])
+			print('  '.join([clean_acc, l2_acc, linf_acc]))
