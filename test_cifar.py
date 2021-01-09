@@ -133,12 +133,15 @@ classifier = PyTorchClassifier(
 )
 print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
-# attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.05, 0.1, 0.15, 0.2, 0.25]]]
-attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
+attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.05, 0.1, 0.15, 0.2, 0.25]]]
+# attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
 for norm, epsilons in attack_params:
     for epsilon in epsilons:
         attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
-        # attack = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
+        # if norm == 2:
+        #     attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=1, eps=epsilon, norm=norm)
+        # else:
+        #     attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon, eps=epsilon, norm=norm)
         adv_correct = 0
         total = 0
         for batch_idx, (inputs, targets) in enumerate(testloader):

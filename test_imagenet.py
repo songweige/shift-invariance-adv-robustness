@@ -11,6 +11,7 @@ import torchvision.transforms as transforms
 import os
 import argparse
 import numpy as np
+from time import time
 
 from models import *
 from models.simple import *
@@ -44,7 +45,7 @@ val_loader = torch.utils.data.DataLoader(
         transforms.ToTensor(),
         normalize,
     ])),
-    batch_size=100, shuffle=False,
+    batch_size=200, shuffle=False,
     num_workers=10, pin_memory=True)
 
 model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
@@ -58,48 +59,53 @@ os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
 attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [2/255., 4/255., 8/255., 16/255.,32/255.]]]
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                      momentum=0.9, weight_decay=5e-4)
 # Model
-for model_name in model_list[:15]:
-    fw = open(os.path.join(log_dir, '%s.txt'%model_name))
-    net = torchvision.models.__dict__['alexnet'](pretrained=True)
+for i, model_name in enumerate(model_list):
+    if i%3 != 2:
+        continue
+    fw = open(os.path.join(log_dir, '%s.txt'%model_name), 'a')
+    net = torchvision.models.__dict__[model_name](pretrained=True)
     net = net.to(device)
     net.eval()
     if device == 'cuda':
         # net = torch.nn.DataParallel(net)
         net = net.cuda()
         cudnn.benchmark = True
-    fw.write('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    total = 0.
-    correct = 0.
-    for batch_idx, (inputs, targets) in enumerate(val_loader):
-        predicted = net(inputs.cuda()).argmax(1)
-        correct += (predicted.cpu().numpy()==targets.numpy()).sum().item()
-        total += targets.size(0)
-    fw.write("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
+    optimizer = optim.SGD(net.parameters(), lr=args.lr,
+                          momentum=0.9, weight_decay=5e-4)
+    fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
+    # total = 0.
+    # correct = 0.
+    # for batch_idx, (inputs, targets) in enumerate(val_loader):
+    #     predicted = net(inputs.cuda()).argmax(1)
+    #     correct += (predicted.cpu().numpy()==targets.numpy()).sum().item()
+    #     total += targets.size(0)
+    # fw.write("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
     classifier = PyTorchClassifier(
         model=net,
         loss=criterion,
-        optimizer=optimizer,
-        clip_values=(0., 1.),
         input_shape=(1, 224, 224),
         nb_classes=1000,
     )
     for norm, epsilons in attack_params:
         for epsilon in epsilons:
-            attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
-            attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
-            adv_correct_FGM = 0
+            # attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
+            if norm == 2:
+                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=1, eps=epsilon, norm=norm)
+            else:
+                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon, eps=epsilon, norm=norm)
+            # adv_correct_FGM = 0
             adv_correct_PGD = 0
             total = 0
             for batch_idx, (inputs, targets) in enumerate(val_loader):
+                # begin_time = time()
                 inputs_adv_PGD = attack_PGD.generate(x=inputs)
-                inputs_adv_FGM = attack_FGM.generate(x=inputs)
+                # inputs_adv_FGM = attack_FGM.generate(x=inputs)
                 adv_predicted_PGD = classifier.predict(inputs_adv_PGD).argmax(1)
-                adv_predicted_FGM = classifier.predict(inputs_adv_FGM).argmax(1)
+                # adv_predicted_FGM = classifier.predict(inputs_adv_FGM).argmax(1)
                 adv_correct_PGD += (adv_predicted_PGD==targets.numpy()).sum().item()
-                adv_correct_FGM += (adv_predicted_FGM==targets.numpy()).sum().item()
+                # adv_correct_FGM += (adv_predicted_FGM==targets.numpy()).sum().item()
                 total += targets.size(0)
-            print("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_FGM/total))
-            print("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_PGD/total))
+                # print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
+            # fw.write("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_FGM/total))
+            fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
