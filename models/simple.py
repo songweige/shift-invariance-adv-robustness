@@ -81,7 +81,9 @@ class simple_Conv_linear_pooling(nn.Module):
             nn.ReLU(),
         )
         self.linear_pooling = nn.Linear(841, 1)
+        torch.nn.init.xavier_uniform_(self.linear_pooling.weight)
         self.classifier = nn.Linear(n_hidden, 10)
+        torch.nn.init.xavier_uniform_(self.classifier.weight)
     def forward(self, x):
         out = self.features(x)
         out = out.view(out.size(0), out.size(1), -1)

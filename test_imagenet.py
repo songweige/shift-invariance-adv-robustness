@@ -21,6 +21,8 @@ from art.attacks.evasion import FastGradientMethod
 from art.attacks.evasion import ProjectedGradientDescentPyTorch
 from art.estimators.classification import PyTorchClassifier
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
@@ -48,6 +50,7 @@ val_loader = torch.utils.data.DataLoader(
     batch_size=200, shuffle=False,
     num_workers=10, pin_memory=True)
 
+
 model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
             'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19', 'squeezenet1_0', 'squeezenet1_1', 'inception_v3', 'densenet121', 
@@ -56,7 +59,7 @@ model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resne
 
 log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet'
 os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
-attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [2/255., 4/255., 8/255., 16/255.,32/255.]]]
+attack_params = [[2, [0.5, 1, 2]], [np.inf, [4/255., 8/255.]]]
 
 criterion = nn.CrossEntropyLoss()
 # Model
@@ -71,8 +74,7 @@ for i, model_name in enumerate(model_list):
         # net = torch.nn.DataParallel(net)
         net = net.cuda()
         cudnn.benchmark = True
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                          momentum=0.9, weight_decay=5e-4)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
     # total = 0.
     # correct = 0.
@@ -91,9 +93,9 @@ for i, model_name in enumerate(model_list):
         for epsilon in epsilons:
             # attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
             if norm == 2:
-                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=1, eps=epsilon, norm=norm)
+                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
             else:
-                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon, eps=epsilon, norm=norm)
+                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
             # adv_correct_FGM = 0
             adv_correct_PGD = 0
             total = 0

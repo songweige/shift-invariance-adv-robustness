@@ -117,6 +117,7 @@ class ResNet_FCPooling(nn.Module):
         # self.conv2 = nn.Conv2d(512, 512, kernel_size=4,
         #                        stride=4, bias=False, padding_mode='circular')
         self.linear_pooling = nn.Linear(4*4, 1)
+        torch.nn.init.xavier_uniform_(self.linear_pooling.weight)
         self.linear = nn.Linear(512*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):

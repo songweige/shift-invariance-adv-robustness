@@ -1,4 +1,4 @@
-# python cifar10.py --model resnet_max_pooling_18
+python cifar10.py --model resnet_max_pooling_18
 # python test_cifar.py --model resnet_max_pooling_18 > /vulcanscratch/songweig/logs/adv_pool/resnet_max_pooling_18.txt
 python test_cifar.py --model resnet_max_pooling_18 > /vulcanscratch/songweig/logs/adv_pool/resnet_max_pooling_PGD_18.txt
 # python cifar10.py --model resnet_max_pooling_34
