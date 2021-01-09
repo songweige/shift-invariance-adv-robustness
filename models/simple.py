@@ -72,6 +72,26 @@ class simple_Conv_max(nn.Module):
         return out
 
 
+class simple_Conv_linear_pooling(nn.Module):
+    def __init__(self, n_hidden, kernel_size=28):
+        super(simple_Conv_linear_pooling, self).__init__()
+        padding_size = kernel_size // 2
+        self.features = nn.Sequential(
+            nn.Conv2d(1, n_hidden, kernel_size=kernel_size, padding=padding_size, padding_mode='circular'),
+            nn.ReLU(),
+        )
+        self.linear_pooling = nn.Linear(841, 1)
+        self.classifier = nn.Linear(n_hidden, 10)
+    def forward(self, x):
+        out = self.features(x)
+        out = out.view(out.size(0), out.size(1), -1)
+        out = self.linear_pooling(out)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+
+
 class simple_FC_linear(nn.Module):
     def __init__(self, n_hidden):
         super(simple_FC_linear, self).__init__()
@@ -113,6 +133,21 @@ class simple_Conv_linear_max(nn.Module):
             nn.AdaptiveMaxPool2d(1)
         )
         self.classifier = nn.Linear(n_hidden, 10)
+    def forward(self, x):
+        out = self.features(x)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+
+class simple_Conv_linear_nopooling(nn.Module):
+    def __init__(self, n_hidden, kernel_size=28):
+        super(simple_Conv_linear_nopooling, self).__init__()
+        padding_size = kernel_size // 2
+        self.features = nn.Sequential(
+            nn.Conv2d(1, n_hidden, kernel_size=kernel_size, padding=padding_size, padding_mode='circular'),
+        )
+        self.classifier = nn.Linear(n_hidden*841, 10)
     def forward(self, x):
         out = self.features(x)
         out = out.view(out.size(0), -1)

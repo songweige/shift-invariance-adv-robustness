@@ -13,12 +13,12 @@ def get_net(model):
         return VGG(model)
     elif model.startswith('resnet'):
         n_layer = model.split('_')[-1]
-        if 'fc_pooling' in model:
-            return resnet_dict[n_layer](fc_pooling=True, max_pooling=False)
+        if 'linear_pooling' in model:
+            return resnet_dict[n_layer](linear_pooling=True, max_pooling=False)
         elif 'max_pooling' in model:
-            return resnet_dict[n_layer](fc_pooling=False, max_pooling=True)
+            return resnet_dict[n_layer](linear_pooling=False, max_pooling=True)
         else:
-            return resnet_dict[n_layer](fc_pooling=False, max_pooling=False)
+            return resnet_dict[n_layer](linear_pooling=False, max_pooling=False)
     elif model.startswith('wide_resnet'):
         n_layer = int(model.split('_')[-2])
         widen_factor = int(model.split('_')[-1])

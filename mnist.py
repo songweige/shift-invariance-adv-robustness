@@ -67,6 +67,10 @@ elif args.model == 'Conv_linear':
     net = simple_Conv_linear(args.n_hidden, args.kernel_size)
 elif args.model == 'Conv_linear_max':
     net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_linear_nopooling':
+    net = simple_Conv_linear_nopooling(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_linear_pooling':
+    net = simple_Conv_linear_pooling(args.n_hidden, args.kernel_size)
 elif args.model.startswith('resnet'):
     n_layer = args.model.split('_')[-1]
     if 'no_pooling' in args.model:
