@@ -21,7 +21,9 @@ from art.attacks.evasion import FastGradientMethod
 from art.attacks.evasion import ProjectedGradientDescentPyTorch
 from art.estimators.classification import PyTorchClassifier
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+import antialiased_cnns
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -51,22 +53,26 @@ val_loader = torch.utils.data.DataLoader(
     num_workers=10, pin_memory=True)
 
 
-model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
-            'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
-            'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
+model_list = {'alexnet':antialiased_cnns.alexnet, 'resnet18':antialiased_cnns.resnet18, 'resnet34':antialiased_cnns.resnet34, 'resnet50':antialiased_cnns.resnet50, 
+            'resnet101':antialiased_cnns.resnet101, 'resnet152':antialiased_cnns.resnet152, 'resnext50_32x4d':antialiased_cnns.resnext50_32x4d, 
+            'resnext101_32x8d':antialiased_cnns.resnext101_32x8d, 'wide_resnet50_2':antialiased_cnns.wide_resnet50_2, 'wide_resnet101_2':antialiased_cnns.wide_resnet101_2, 
+            'vgg11':antialiased_cnns.vgg11, 'vgg11_bn':antialiased_cnns.vgg11_bn, 'vgg13':antialiased_cnns.vgg13, 'vgg13_bn':antialiased_cnns.vgg13_bn, 
+            'vgg16':antialiased_cnns.vgg16, 'vgg16_bn':antialiased_cnns.vgg16_bn, 'vgg19_bn':antialiased_cnns.vgg19_bn, 'vgg19':antialiased_cnns.vgg19, 
+            'densenet121':antialiased_cnns.densenet121, 'densenet169':antialiased_cnns.densenet169, 'densenet201':antialiased_cnns.densenet201, 
+            'densenet161':antialiased_cnns.densenet161, 'mobilenet_v2':antialiased_cnns.mobilenet_v2}
 
 
-log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet'
-os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
+log_dir = '/vulcanscratch/songweig/logs/adv_pool/antialiased_imagenet'
+os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/antialiased_imagenet'
 attack_params = [[2, [0.5, 1, 2]], [np.inf, [4/255., 8/255.]]]
 
 criterion = nn.CrossEntropyLoss()
 # Model
-for i, model_name in enumerate(model_list[4:]):
+for i, model_name in enumerate(model_list.keys()):
     if i%2 != 0:
         continue
     fw = open(os.path.join(log_dir, '%s.txt'%model_name), 'a')
-    net = torchvision.models.__dict__[model_name](pretrained=True)
+    net = model_list[model_name](pretrained=True)
     net = net.to(device)
     net.eval()
     if device == 'cuda':
