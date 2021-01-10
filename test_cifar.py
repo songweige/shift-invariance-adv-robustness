@@ -126,16 +126,14 @@ start_epoch = checkpoint['epoch']
 classifier = PyTorchClassifier(
     model=net,
     loss=criterion,
-    optimizer=optimizer,
-    clip_values=(0., 1.),
-    input_shape=(1, 28, 28),
+    input_shape=(1, 32, 32),
     nb_classes=10,
 )
 print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
 attack_params = [[2, [32/256., 64./256., 128./256, 256/256, 1.5]], [np.inf, [1/256., 2/256., 4/256., 8/256., 16/256.]]]
 # attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
-
+# import ipdb;ipdb.set_trace()
 
 for norm, epsilons in attack_params:
     for epsilon in epsilons:
