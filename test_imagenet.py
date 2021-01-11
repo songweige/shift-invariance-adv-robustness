@@ -35,10 +35,25 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Data
 print('==> Preparing data..')
-traindir = os.path.join('/fs/vulcan-datasets/imagenet/', 'train')
+# traindir = os.path.join('/fs/vulcan-datasets/imagenet/', 'train')
+traindir =  '/vulcanscratch/songweig/datasets/imagenet/train_subset'
 valdir = os.path.join('/fs/vulcan-datasets/imagenet/', 'val')
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
+
+trainset = torchvision.datasets.ImageFolder(traindir, transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ]))
+
+# trainset_sub = torch.utils.data.Subset(trainset, indices=np.arange(5000))
+train_loader = torch.utils.data.DataLoader(
+    trainset,
+    batch_size=200, shuffle=False,
+    num_workers=10, pin_memory=True)
+
 
 val_loader = torch.utils.data.DataLoader(
     torchvision.datasets.ImageFolder(valdir, transforms.Compose([
@@ -51,8 +66,13 @@ val_loader = torch.utils.data.DataLoader(
     num_workers=10, pin_memory=True)
 
 
+# model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
+#             'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
+#             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
+
+
 model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
-            'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
+            'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
 
 
@@ -62,11 +82,12 @@ attack_params = [[2, [0.5, 1, 2]], [np.inf, [4/255., 8/255.]]]
 
 criterion = nn.CrossEntropyLoss()
 # Model
-for i, model_name in enumerate(model_list[4:]):
-    if i%2 != 0:
+for i, model_name in enumerate(model_list[8:]):
+    print(model_name)
+    if i%2 != 1:
         continue
-    fw = open(os.path.join(log_dir, '%s.txt'%model_name), 'a')
-    net = torchvision.models.__dict__[model_name](pretrained=True)
+    fw = open(os.path.join(log_dir, '%s_train_10000.txt'%model_name), 'a')
+    net = torchvision.models.__dict__['alexnet'](pretrained=True)
     net = net.to(device)
     net.eval()
     if device == 'cuda':
@@ -95,7 +116,7 @@ for i, model_name in enumerate(model_list[4:]):
             # adv_correct_FGM = 0
             adv_correct_PGD = 0
             total = 0
-            for batch_idx, (inputs, targets) in enumerate(val_loader):
+            for batch_idx, (inputs, targets) in enumerate(train_loader):
                 # begin_time = time()
                 inputs_adv_PGD = attack_PGD.generate(x=inputs)
                 # inputs_adv_FGM = attack_FGM.generate(x=inputs)
