@@ -57,8 +57,6 @@ testloader = torch.utils.data.DataLoader(
 classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
 
-resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '152':ResNet152}
-
 
 def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
     flattened = x.view(x.shape[0], -1)

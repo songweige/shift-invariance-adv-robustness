@@ -7,11 +7,16 @@ cfg = {
     'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
-    'VGG11_NoPooling': [64, 'L', 128, 'L', 256, 256, 'L', 512, 512, 'L', 512, 512, 'L'],
-    'VGG13_NoPooling': [64, 64, 'L', 128, 128, 'L', 256, 256, 'L', 512, 512, 'L', 512, 512, 'L'],
-    'VGG16_NoPooling': [64, 64, 'L', 128, 128, 'L', 256, 256, 256, 'L', 512, 512, 512, 'L', 512, 512, 512, 'L'],
-    'VGG19_NoPooling': [64, 64, 'L', 128, 128, 'L', 256, 256, 256, 256, 'L', 512, 512, 512, 512, 'L', 512, 512, 512, 512, 'L'],
+    'VGG11_NoPooling': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'L'],
+    'VGG13_NoPooling': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'L'],
+    'VGG16_NoPooling': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'L'],
+    'VGG19_NoPooling': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'L'],
 }
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.reshape(x.shape[0], -1)
 
 
 class VGG(nn.Module):
@@ -33,13 +38,17 @@ class VGG(nn.Module):
             if x == 'M':
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
             elif x == 'L':
-                layers += [nn.Conv2d(in_channels, in_channels, kernel_size=2, stride=2)]
+                # layers += [nn.Conv2d(in_channels, in_channels, kernel_size=2, stride=2)]
+                layers += [Flatten(),
+                           nn.Linear(2048, 512),
+                           nn.ReLU(inplace=True)]
             else:
                 layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1, padding_mode='circular'),
                            nn.BatchNorm2d(x),
                            nn.ReLU(inplace=True)]
                 in_channels = x
-        layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
+        if x != 'L':
+            layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
         return nn.Sequential(*layers)
 
 
