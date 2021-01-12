@@ -55,15 +55,15 @@ train_loader = torch.utils.data.DataLoader(
     num_workers=10, pin_memory=True)
 
 
-val_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.ImageFolder(valdir, transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize,
-    ])),
-    batch_size=200, shuffle=False,
-    num_workers=10, pin_memory=True)
+# val_loader = torch.utils.data.DataLoader(
+#     torchvision.datasets.ImageFolder(valdir, transforms.Compose([
+#         transforms.Resize(256),
+#         transforms.CenterCrop(224),
+#         transforms.ToTensor(),
+#         normalize,
+#     ])),
+#     batch_size=200, shuffle=False,
+#     num_workers=10, pin_memory=True)
 
 
 # model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
@@ -82,12 +82,12 @@ attack_params = [[2, [0.5, 1, 2]], [np.inf, [4/255., 8/255.]]]
 
 criterion = nn.CrossEntropyLoss()
 # Model
-for i, model_name in enumerate(model_list[8:]):
+for i, model_name in enumerate(model_list[3:]):
     print(model_name)
-    if i%2 != 1:
+    if i%2 != 0:
         continue
     fw = open(os.path.join(log_dir, '%s_train_10000.txt'%model_name), 'a')
-    net = torchvision.models.__dict__['alexnet'](pretrained=True)
+    net = torchvision.models.__dict__[model_name](pretrained=True)
     net = net.to(device)
     net.eval()
     if device == 'cuda':
@@ -95,7 +95,7 @@ for i, model_name in enumerate(model_list[8:]):
         net = net.cuda()
         cudnn.benchmark = True
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-    fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
+    # fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
     # total = 0.
     # correct = 0.
     # for batch_idx, (inputs, targets) in enumerate(val_loader):
@@ -128,3 +128,10 @@ for i, model_name in enumerate(model_list[8:]):
                 # print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
             # fw.write("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_FGM/total))
             fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
+    clean_correct = 0
+    total = 0
+    for batch_idx, (inputs, targets) in enumerate(train_loader):
+        clean_predicted = classifier.predict(inputs).argmax(1)
+        clean_correct += (clean_predicted==targets.numpy()).sum().item()
+        total += targets.size(0)
+    fw.write("Training Accuracy: {:.2f}%\n".format(100.*clean_correct/total))

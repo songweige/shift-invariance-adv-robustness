@@ -46,6 +46,14 @@ testset = torchvision.datasets.CIFAR10(
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False, num_workers=2)
 
+
+# testset = torchvision.datasets.CIFAR10(
+#     root='/fs/vulcan-datasets/CIFAR/', train=True, download=True, transform=transform_test)
+# testset = torch.utils.data.Subset(testset, indices=np.arange(10000))
+# testloader = torch.utils.data.DataLoader(
+#     testset, batch_size=100, shuffle=False, num_workers=2)
+
+
 classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
 
