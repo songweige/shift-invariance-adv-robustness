@@ -41,29 +41,29 @@ valdir = os.path.join('/fs/vulcan-datasets/imagenet/', 'val')
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
-trainset = torchvision.datasets.ImageFolder(traindir, transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize,
-    ]))
-
-# trainset_sub = torch.utils.data.Subset(trainset, indices=np.arange(5000))
-train_loader = torch.utils.data.DataLoader(
-    trainset,
-    batch_size=200, shuffle=False,
-    num_workers=10, pin_memory=True)
-
-
-# val_loader = torch.utils.data.DataLoader(
-#     torchvision.datasets.ImageFolder(valdir, transforms.Compose([
+# trainset = torchvision.datasets.ImageFolder(traindir, transforms.Compose([
 #         transforms.Resize(256),
 #         transforms.CenterCrop(224),
 #         transforms.ToTensor(),
 #         normalize,
-#     ])),
+#     ]))
+
+# # trainset_sub = torch.utils.data.Subset(trainset, indices=np.arange(5000))
+# train_loader = torch.utils.data.DataLoader(
+#     trainset,
 #     batch_size=200, shuffle=False,
 #     num_workers=10, pin_memory=True)
+
+
+val_loader = torch.utils.data.DataLoader(
+    torchvision.datasets.ImageFolder(valdir, transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ])),
+    batch_size=200, shuffle=False,
+    num_workers=10, pin_memory=True)
 
 
 # model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
@@ -76,17 +76,18 @@ model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resne
             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
 
 
-log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet'
+log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm'
 os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
-attack_params = [[2, [0.5, 1, 2]], [np.inf, [4/255., 8/255.]]]
+attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
+attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 
 criterion = nn.CrossEntropyLoss()
 # Model
-for i, model_name in enumerate(model_list[3:]):
+for i, model_name in enumerate(model_list):
     print(model_name)
-    if i%2 != 0:
+    if i%2 != 1:
         continue
-    fw = open(os.path.join(log_dir, '%s_train_10000.txt'%model_name), 'a')
+    fw = open(os.path.join(log_dir, '%s.txt'%model_name), 'a')
     net = torchvision.models.__dict__[model_name](pretrained=True)
     net = net.to(device)
     net.eval()
@@ -116,7 +117,7 @@ for i, model_name in enumerate(model_list[3:]):
             # adv_correct_FGM = 0
             adv_correct_PGD = 0
             total = 0
-            for batch_idx, (inputs, targets) in enumerate(train_loader):
+            for batch_idx, (inputs, targets) in enumerate(val_loader):
                 # begin_time = time()
                 inputs_adv_PGD = attack_PGD.generate(x=inputs)
                 # inputs_adv_FGM = attack_FGM.generate(x=inputs)
@@ -128,10 +129,10 @@ for i, model_name in enumerate(model_list[3:]):
                 # print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
             # fw.write("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_FGM/total))
             fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
-    clean_correct = 0
-    total = 0
-    for batch_idx, (inputs, targets) in enumerate(train_loader):
-        clean_predicted = classifier.predict(inputs).argmax(1)
-        clean_correct += (clean_predicted==targets.numpy()).sum().item()
-        total += targets.size(0)
-    fw.write("Training Accuracy: {:.2f}%\n".format(100.*clean_correct/total))
+    # clean_correct = 0
+    # total = 0
+    # for batch_idx, (inputs, targets) in enumerate(train_loader):
+    #     clean_predicted = classifier.predict(inputs).argmax(1)
+    #     clean_correct += (clean_predicted==targets.numpy()).sum().item()
+    #     total += targets.size(0)
+    # fw.write("Training Accuracy: {:.2f}%\n".format(100.*clean_correct/total))
