@@ -13,3 +13,14 @@ python test_cifar.py --model resnet_101 > /vulcanscratch/songweig/logs/adv_pool/
 # python cifar10.py --model resnet_152
 # python test_cifar.py --model resnet_152 > /vulcanscratch/songweig/logs/adv_pool/resnet_152.txt
 python test_cifar.py --model resnet_152 > /vulcanscratch/songweig/logs/adv_pool/resnet_PGD_152.txt
+
+
+
+python cifar10.py --model alexnet
+python test_cifar.py --model alexnet > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/alexnet.txt
+
+python test_cifar.py --model VGG13 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/vgg13.txt
+python cifar10.py --model VGG11
+python test_cifar.py --model VGG11 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/vgg11.txt
+python cifar10.py --model VGG16
+python test_cifar.py --model VGG16 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/vgg16.txt
