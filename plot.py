@@ -18,7 +18,7 @@ base_cnns = {'L_2': copy.deepcopy(L2_acc), 'L_inf': copy.deepcopy(Linf_acc)}
 antialiased_cnns = {'L_2': copy.deepcopy(L2_acc), 'L_inf': copy.deepcopy(Linf_acc)}
 
 for model_name in L2_acc:
-	with open(os.path.join(log_dir_imagenet, model_name+'.txt')) as f:
+	with open(os.path.join(log_dir_imagenet, model_name+'_train_10000.txt')) as f:
 		for line in f:
 			if not line.startswith('Accuracy'):
 				continue
@@ -28,7 +28,7 @@ for model_name in L2_acc:
 			if strength not in base_cnns[attack][model_name]:
 				continue
 			base_cnns[attack][model_name][strength] = float(acc)
-	with open(os.path.join(log_dir_antialiased_imagenet, model_name+'.txt')) as f:
+	with open(os.path.join(log_dir_antialiased_imagenet, model_name+'_train_10000.txt')) as f:
 		final_run = False
 		for line in f:
 			if not line.startswith('Accuracy'):
@@ -41,29 +41,16 @@ for model_name in L2_acc:
 			antialiased_cnns[attack][model_name][strength] = float(acc)
 
 
-colors = ['#003f5c', '#ffa600', '#444e86', '#955196', '#dd5182', '#ff6e54', '#ffa600']
-for attack in base_cnns:
-	epss = base_cnns[attack]['alexnet']
-	n_eps = len(epss)
-	plt.clf()
-	for color, model_name in zip(colors[::-1], L2_acc.keys()):
-		plt.scatter(np.arange(n_eps), [base_cnns[attack][model_name][strength] for strength in epss], label=model_name, color=color)
-	plt.xticks(np.arange(n_eps), epss.keys())
-	plt.legend(loc='upper right', ncol=3)
-	plt.title('test accuracy under %s adversarial attack'%(attack))
-	plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/%s_models.png'%(attack))
-
-
-
+n_models = len(L2_acc)
 for attack in base_cnns:
 	for strength in base_cnns[attack]['alexnet']:
-	plt.clf()
-	plt.scatter(np.arange(n_models), [base_cnns[attack][model_name][strength] for model_name in L2_acc], label='base CNNs', color='orange')
-	plt.scatter(np.arange(n_models), [antialiased_cnns[attack][model_name][strength] for model_name in L2_acc], label='antialiased CNNs', color='turquoise')
-	plt.xticks(np.arange(n_models), L2_acc.keys())
-	plt.legend(loc='upper right')
-	plt.title('test accuracy under %s adversarial attack with radius %s'%(attack, strength))
-	plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/%s_%s.png'%(attack, strength))
+		plt.clf()
+		plt.scatter(np.arange(n_models), [base_cnns[attack][model_name][strength] for model_name in L2_acc], label='base CNNs', color='orange')
+		plt.scatter(np.arange(n_models), [antialiased_cnns[attack][model_name][strength] for model_name in L2_acc], label='antialiased CNNs', color='turquoise')
+		plt.xticks(np.arange(n_models), L2_acc.keys())
+		plt.legend(loc='upper right')
+		plt.title('test accuracy under %s adversarial attack with radius %s'%(attack, strength))
+		plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/%s_%s_train_10000.png'%(attack, strength))
 
 
 
@@ -84,3 +71,18 @@ plt.xticks(np.arange(n_models), L2_acc.keys())
 plt.legend(loc='upper right')
 plt.title('clean test accuracy')
 plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/clean.png')
+
+
+
+
+colors = ['#003f5c', '#ffa600', '#444e86', '#955196', '#dd5182', '#ff6e54', '#ffa600', 'green']
+for attack in base_cnns:
+	epss = base_cnns[attack]['alexnet']
+	n_eps = len(epss)
+	plt.clf()
+	for color, model_name in zip(colors[::-1], L2_acc.keys()):
+		plt.scatter(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], label=model_name, color=color)
+	plt.xticks(np.arange(n_eps+1), [0]+list(epss.keys()))
+	plt.legend(loc='upper right', ncol=3)
+	plt.title('test accuracy under %s adversarial attack'%(attack))
+	plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/%s_models.png'%(attack))

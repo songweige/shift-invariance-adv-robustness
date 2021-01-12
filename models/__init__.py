@@ -11,6 +11,8 @@ resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '15
 def get_net(model):
     if model.startswith('VGG'):
         return VGG(model)
+    elif model.startswith('alexnet'):
+        return AlexNet()
     elif model.startswith('resnet'):
         n_layer = model.split('_')[-1]
         if 'linear_pooling' in model:
