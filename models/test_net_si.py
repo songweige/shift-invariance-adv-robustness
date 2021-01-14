@@ -1,7 +1,7 @@
 import torch
 import torchvision
 
-### ResNet & Wide-ResNet & ResNetXT 7x7
+### ResNet & Wide-ResNet & ResNetXT 7x7 -> gap
 net = torchvision.models.__dict__['resnet152']()
 net = torchvision.models.__dict__['wide_resnet101_2']()
 net = torchvision.models.__dict__['resnext50_32x4d']()
@@ -20,7 +20,7 @@ x = net.layer4(x)
 print(x.shape)
 
 
-### AlexNet 6x6
+### AlexNet 6x6 -> fc
 net = torchvision.models.__dict__['alexnet']()
 
 x = torch.randn(1,3,224,224)
@@ -28,7 +28,7 @@ x = net.features(x)
 
 print(x.shape)
 
-### VGG 7x7
+### VGG 7x7 -> fc
 net = torchvision.models.__dict__['vgg11']()
 
 x = torch.randn(1,3,224,224)
@@ -37,7 +37,7 @@ x = net.features(x)
 print(x.shape)
 
 
-### densenet121 7x7
+### densenet121 7x7 -> gap
 net = torchvision.models.__dict__['densenet201']()
 
 x = torch.randn(1,3,224,224)
@@ -45,12 +45,12 @@ x = net.features(x)
 
 print(x.shape)
 
-### Inception V3 8x8
-### GoogleNet 7x7
+### Inception V3 8x8 -> gap
+### GoogleNet 7x7 -> gap
 
 
 
-### mobilenet_v2 7x7
+### mobilenet_v2 7x7 -> gap
 net = torchvision.models.__dict__['mobilenet_v2']()
 
 x = torch.randn(1,3,224,224)

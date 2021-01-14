@@ -12,7 +12,10 @@ def get_net(model):
     if model.startswith('VGG'):
         return VGG(model)
     elif model.startswith('alexnet'):
-        return AlexNet()
+        if 'nopooling' in model:
+            return AlexNet_NoPooling()
+        else:
+            return AlexNet()
     elif model.startswith('resnet'):
         n_layer = model.split('_')[-1]
         if 'nopooling' in model:
