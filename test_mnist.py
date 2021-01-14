@@ -26,6 +26,7 @@ parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
 parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
+parser.add_argument('--epoch', default=200, type=int, help='which epoch to load')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
@@ -103,11 +104,15 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
 
 
-if 'Conv' in args.model and args.kernel_size != 28:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
+if args.epoch == 200:
+    if 'Conv' in args.model and args.kernel_size != 28:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
+    else:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d.pth'%(args.model, args.n_hidden))
 else:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d.pth'%(args.model, args.n_hidden))
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
 
+    
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']

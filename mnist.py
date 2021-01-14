@@ -149,18 +149,25 @@ def test(epoch, net, model_name):
                              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
-    # if acc > best_acc:
-    if epoch == start_epoch+199:
-        print('Saving..')
+    if epoch % 10 == 0:
         state = {
             'net': net.state_dict(),
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist'):
-            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist/%s.pth'%model_name)
-        best_acc = acc
+        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/%s_%s.pth'%(model_name, epoch))
+    # if acc > best_acc:
+    # if epoch == start_epoch+199:
+    #     print('Saving..')
+    #     state = {
+    #         'net': net.state_dict(),
+    #         'acc': acc,
+    #         'epoch': epoch,
+    #     }
+    #     if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist'):
+    #         os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist')
+    #     torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist/%s.pth'%model_name)
+    #     best_acc = acc
 
 
 for epoch in range(start_epoch, start_epoch+200):
