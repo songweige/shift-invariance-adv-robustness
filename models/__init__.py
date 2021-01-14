@@ -15,7 +15,7 @@ def get_net(model):
         return AlexNet()
     elif model.startswith('resnet'):
         n_layer = model.split('_')[-1]
-        if 'no_pooling' in model:
+        if 'nopooling' in model:
             return resnet_dict[n_layer](no_pooling=True, linear_pooling=False, max_pooling=False)
         elif 'linear_pooling' in model:
             return resnet_dict[n_layer](no_pooling=False, linear_pooling=True, max_pooling=False)
