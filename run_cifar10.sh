@@ -16,6 +16,8 @@ python test_cifar.py --model resnet_max_pooling_152 > /vulcanscratch/songweig/lo
 
 python cifar10.py --model alexnet
 python test_cifar.py --model alexnet > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/alexnet.txt
+python cifar10.py --model alexnet_nopooling
+python test_cifar.py --model alexnet_nopooling > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/alexnet_nopooling.txt
 
 python cifar10.py --model VGG11
 python test_cifar.py --model VGG11 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/vgg11.txt

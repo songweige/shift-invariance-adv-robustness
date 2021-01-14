@@ -66,27 +66,32 @@ val_loader = torch.utils.data.DataLoader(
     num_workers=10, pin_memory=True)
 
 
-# model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
-#             'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
-#             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
-
-
-model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
-            'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
-            'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
-
-
 log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm'
 os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
 attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
 attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 
 criterion = nn.CrossEntropyLoss()
+
+# model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
+#             'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
+#             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
+
+
+# model_list = ['alexnet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
+#             'wide_resnet50_2', 'wide_resnet101_2', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 
+#             'vgg16', 'vgg16_bn', 'vgg19_bn', 'vgg19' 'densenet121', 'densenet169', 'densenet201', 'densenet161', 'mobilenet_v2']
+
+
+model_list = ['vgg11', 'vgg11_bn', 'wide_resnet50_2', 'wide_resnet101_2']
+model_list = ['vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn']
+model_list = ['vgg19_bn', 'vgg19', 'densenet121', 'densenet169']
+model_list = ['densenet201', 'densenet161', 'mobilenet_v2']
 # Model
 for i, model_name in enumerate(model_list):
     print(model_name)
-    if i%2 != 1:
-        continue
+    # if i%2 != 1:
+    #     continue
     fw = open(os.path.join(log_dir, '%s.txt'%model_name), 'a')
     net = torchvision.models.__dict__[model_name](pretrained=True)
     net = net.to(device)
