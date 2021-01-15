@@ -57,7 +57,7 @@ class AlexNet_NoPooling(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(256, 256, kernel_size=3, padding=1, padding_mode='circular'),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=4),
+            nn.AvgPool2d(kernel_size=4),
         )
         self.classifier = nn.Sequential(
             nn.Dropout(),
