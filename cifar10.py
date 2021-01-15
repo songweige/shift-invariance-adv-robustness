@@ -112,9 +112,10 @@ def train(epoch):
         if args.verbos > 1:
             progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    return 100.*correct/total
 
 
-def test(epoch):
+def test(epoch, train_acc):
     global best_acc
     net.eval()
     test_loss = 0
@@ -136,12 +137,13 @@ def test(epoch):
 
     # Save checkpoint.
     acc = 100.*correct/total
-    if acc > best_acc:
+    if epoch == start_epoch+199:
         print('Saving..')
         state = {
             'net': net.state_dict(),
             'acc': acc,
             'epoch': epoch,
+            'train_acc': train_acc,
         }
         if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10'):
             os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/cifar10')
@@ -153,6 +155,6 @@ def test(epoch):
 
 
 for epoch in range(start_epoch, start_epoch+200):
-    train(epoch)
-    test(epoch)
+    train_acc = train(epoch)
+    test(epoch, train_acc)
     scheduler.step()

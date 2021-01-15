@@ -71,20 +71,20 @@ for attack in base_cnns:
 ########################################################################################################################################################
 
 for attack in list(gap_cnns.keys())[:-1]:
-	epss = gap_cnns[attack]['vgg11']
+	epss = base_cnns[attack]['vgg11']
 	n_eps = len(epss)
 	plt.clf()
 	ax = plt.subplot(111)
 	for color1, color2, model_name in zip(colors1, colors2, L2_acc.keys()):
-		plt.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[gap_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name, color=color2)
-		plt.plot(np.arange(n_eps+1), [clean_accs[model_name+'_bn'][0]]+[np_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name+'_bn', color=color1)
+		plt.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name, color=color2)
+		plt.plot(np.arange(n_eps+1), [clean_accs[model_name+'_bn'][0]]+[antialiased_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name+'_bn', color=color1)
 	plt.xticks(np.arange(n_eps+1), [0]+list(epss.keys()))
 	box = ax.get_position()
 	ax.set_position([box.x0, box.y0 + box.height * 0.1,
                  box.width, box.height * 0.9])
 	plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, ncol=4)
 	plt.title('test accuracy under %s adversarial attack'%(attack))
-	plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/vgg_%s_%s.png'%(attack, strength_norm[attack][strength]))
+	plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/vgg_%s.png'%(attack))
 
 
 ########################################################################################################################################################
