@@ -49,4 +49,4 @@ python test_cifar.py --model resnet_nopooling_18 > /vulcanscratch/songweig/logs/
 python cifar10.py --model resnet_nopooling_50
 python test_cifar.py --model resnet_nopooling_50 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/resnet_no_pooling_50.txt
 python cifar10.py --model resnet_nopooling_101
-python test_cifar.py --model resnet_nopooling_101 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/resnet_no_pooling_101.txt
+python test_cifar.py --model resnet_nopooling_101 > /vulcanscratch/songweig/logs/adv_pool/cifar10/resnet_circular_padding_noaug/resnet_no_pooling_1
