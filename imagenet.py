@@ -18,9 +18,6 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-
-MODEL_DIR = '/vulcanscratch/songweig/ckpts/adv_pool'
-
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -358,9 +355,9 @@ def validate(val_loader, model, criterion, args):
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, os.path.join(MODEL_DIR, filename))
+    torch.save(state, filename)
     if is_best:
-        shutil.copyfile(os.path.join(MODEL_DIR, filename), 'model_best.pth.tar')
+        shutil.copyfile(filename, 'model_best.pth.tar')
 
 
 class AverageMeter(object):
