@@ -10,10 +10,24 @@ resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '15
 
 def get_net(model):
     if model.startswith('VGG'):
-        return VGG(model)
+        if 'MLP' in model:
+            configs = model.split('_')
+            n_hidden = int(configs[-1])
+            model = '_'.join(configs[:-2])
+            return VGG_MLP(model, n_hidden)
+        else:
+            return VGG(model)
     elif model.startswith('alexnet'):
         if 'nopooling' in model:
             return AlexNet_NoPooling()
+        elif 'MLP2' in model:
+            n_hidden = int(model.split('_')[-1])
+            return AlexNet_MLP2(n_hidden=n_hidden)
+        elif 'MLP' in model:
+            n_hidden = int(model.split('_')[-1])
+            return AlexNet_MLP(n_hidden=n_hidden)
+        elif 'linear' in model:
+            return AlexNet_linear()
         else:
             return AlexNet()
     elif model.startswith('resnet'):
