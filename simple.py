@@ -82,7 +82,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
-k = 100
+k = 28
 # batch = create_dataset_sin_cos(k)
 batch = create_dataset_dots(k)
 n_hidden = 100
@@ -176,7 +176,17 @@ for i in range(4):
     plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/sincos%d.png'%i)
 
 
-for i in range(42:
-    plt.clf()
-    plt.imshow(batch[0][i][0], cmap='gray')
-    plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
+import cv2
+from PIL import Image
+
+
+for i in range(2):
+    # plt.clf()
+    # plt.imshow((batch[0][i][0]+1)/2., cmap='gray')
+    # plt.axis('off')
+    # plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
+    img = np.zeros([150, 150])*0.5
+    img[75:85, 75:85] = i
+    # im = Image.fromarray(np.uint8((batch[0][i][0]+1)/2* 255), 'L')
+    im = Image.fromarray(np.uint8(img* 255), 'L')
+    im.save('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
