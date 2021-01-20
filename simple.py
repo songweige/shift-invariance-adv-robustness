@@ -185,7 +185,7 @@ for i in range(2):
     # plt.imshow((batch[0][i][0]+1)/2., cmap='gray')
     # plt.axis('off')
     # plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
-    img = np.zeros([150, 150])*0.5
+    img = np.ones([150, 150])*0.5
     img[75:85, 75:85] = i
     # im = Image.fromarray(np.uint8((batch[0][i][0]+1)/2* 255), 'L')
     im = Image.fromarray(np.uint8(img* 255), 'L')
