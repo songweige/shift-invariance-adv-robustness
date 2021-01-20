@@ -3,10 +3,10 @@ import re
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
-
+import matplotlib
 
 log_dir_imagenet = '/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm'
-model_names = ['alexnet', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg19', 'vgg19_bn', 
+model_names = ['alexnet', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn', 
 				'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 
 				'wide_resnet50_2', 'densenet121', 'densenet169', 'densenet201', 'mobilenet_v2']
 
@@ -48,20 +48,31 @@ colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46
 		'#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', 
 		'#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#000000']
 
-y_lims = {'L_2': [6, 60], 'L_inf': [5, 22]}
+font = {'family' : 'normal',
+        'size'   : 15}
+
+matplotlib.rc('font', **font)
+
+# y_lims = {'L_2': [6, 60], 'L_inf': [5, 22]}
+y_lims = {'L_2': [0., 1.], 'L_inf': [0., 1.]}
 for attack in base_cnns:
 	for strength in base_cnns[attack]['alexnet']:
 		plt.clf()
 		fig = plt.figure()
 		for i, model_name in enumerate(model_names):
 			# plt.scatter([clean_accs[model_name][0]], [base_cnns[attack][model_name][strength]], color=colors[i])
-			plt.scatter([consistency[model_name]], [base_cnns[attack][model_name][strength]], color=colors[i])
+			# plt.scatter([consistency[model_name]], [base_cnns[attack][model_name][strength]], color=colors[i])
+			rate = (clean_accs[model_name][0]-base_cnns[attack][model_name][strength])/clean_accs[model_name][0]
+			plt.scatter([consistency[model_name]], [rate], color=colors[i], s=100, alpha=0.8)
 		# plt.xticks(np.arange(n_models), L2_acc.keys())
-		plt.xlabel('clean accuracy')
-		plt.ylabel('accuracy under adversarial attack')
+		# plt.xlabel('clean accuracy')
+		# plt.ylabel('Adversarial attack')
+		plt.xlabel('Consistency')
+		plt.ylabel('Success rate')
 		plt.ylim(*y_lims[attack])
 		# plt.legend(loc='upper right')
-		plt.title('test accuracy under %s attack with epsilon %s'%(attack, strength_norm[attack][strength]))
+		# plt.title('test accuracy under %s attack with epsilon %s'%(attack, strength_norm[attack][strength]))
+		# plt.title('%s attack with epsilon %s'%(attack, strength_norm[attack][strength]))
 		plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/pretrained_%s_%s_consistency.png'%(attack, strength))
 
 
