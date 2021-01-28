@@ -78,39 +78,70 @@ def test(epoch, net, model_name, batch):
         best_acc = acc
 
 
+
+def l2_norm(x: torch.Tensor) -> torch.Tensor:
+    return squared_l2_norm(x).sqrt()
+
+
+def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
+    flattened = x.view(x.shape[0], -1)
+    return (flattened ** 2).sum(1)
+
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
-k = 28
-# batch = create_dataset_sin_cos(k)
-batch = create_dataset_dots(k)
-n_hidden = 100
-kernel_size = k
-model = 'Conv'
+dists = []
+for i in range(15):
+    k = i*2 + 1
+    # k = 25
+    # batch = create_dataset_sin_cos(k)
+    batch = create_dataset_dots(k)
+    n_hidden = 100
+    kernel_size = k
+    # model = 'Conv'
+    # Model
+    if model == 'FC':
+        net = simple_FC_2D(k*k, n_hidden)
+    elif model == 'Conv':
+        net = simple_Conv_2D(n_hidden, kernel_size)
+    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    net = net.cuda()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=1)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+    torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
+    for epoch in range(start_epoch, start_epoch+1000):
+        train(epoch, net, torch_batch)
+        test(epoch, net, 'simple_%s_%d'%(model, n_hidden), torch_batch)
+        # scheduler.step()
+    inputs, targets = torch_batch
+    n_steps = [1000]
+    for n_step in n_steps:
+        attacker = DDN(steps=n_step, device=torch.device('cuda'))
+        adv_norm = 0.
+        adv_correct = 0
+        total = 0
+        inputs, targets = inputs.to(device), targets.to(device)
+        adv = attacker.attack(net, inputs.to(device), labels=targets.to(device), targeted=False)
+        adv_outputs = net(adv)
+        _, adv_predicted = adv_outputs.max(1)
+        total += targets.size(0)
+        adv_correct += adv_predicted.eq(targets).sum().item()
+        adv_norm += l2_norm(adv - inputs.to(device)).sum().item()
+        print('DDN (n-step = {:.0f}) done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
+            n_step,
+            100.*adv_correct/total,
+            adv_norm/total
+        ))
+    dists.append(adv_norm/total)
 
-# Model
-if model == 'FC':
-    net = simple_FC_2D(k*k, n_hidden)
-elif model == 'Conv':
-    net = simple_Conv_2D(n_hidden, kernel_size)
 
-print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-net = net.cuda()
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.01,
-                      momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
-
-
-torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
-for epoch in range(start_epoch, start_epoch+200):
-    train(epoch, net, torch_batch)
-    test(epoch, net, 'simple_%s_%d'%(model, n_hidden), torch_batch)
-    scheduler.step()
-
-
+net.features[0].bias.grad
+net.features[0].weight.data[0, 0]
+net.features[1].weight.data[0].abs().argmax()
+net.features[1].weight.grad
 # classifier = PyTorchClassifier(
 #     model=net,
 #     loss=criterion,
@@ -135,40 +166,42 @@ for epoch in range(start_epoch, start_epoch+200):
 #         total += targets.size(0)
 #         print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct/total))
 
-
-
-def l2_norm(x: torch.Tensor) -> torch.Tensor:
-    return squared_l2_norm(x).sqrt()
-
-
-def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
-    flattened = x.view(x.shape[0], -1)
-    return (flattened ** 2).sum(1)
-
-
-inputs, targets = torch_batch
-n_steps = [500]
-for n_step in n_steps:
-    attacker = DDN(steps=n_step, device=torch.device('cuda'))
-    adv_norm = 0.
-    adv_correct = 0
-    total = 0
-    inputs, targets = inputs.to(device), targets.to(device)
-    adv = attacker.attack(net, inputs.to(device), labels=targets.to(device), targeted=False)
-    adv_outputs = net(adv)
-    _, adv_predicted = adv_outputs.max(1)
-    total += targets.size(0)
-    adv_correct += adv_predicted.eq(targets).sum().item()
-    adv_norm += l2_norm(adv - inputs.to(device)).sum().item()
-    print('DDN (n-step = {:.0f}) done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
-        n_step,
-        100.*adv_correct/total,
-        adv_norm/total
-    ))
-
-
-
+import matplotlib
 import matplotlib.pyplot as plt
+
+FCN_accs = [1.0039215087890625, 0.9850332140922546, 0.976715087890625, 0.9680507183074951, 0.971983790397644, 
+            0.9777611494064331, 0.9765254855155945, 0.9740734696388245, 0.9753726720809937, 0.9727703928947449, 
+            0.9746283292770386, 0.9760518670082092, 0.9730303287506104, 0.9819855093955994, 0.9761784076690674]
+
+CNN_accs = [1.0039215087890625, 0.33606475591659546, 0.203160360455513, 0.1456798017024994, 0.11684942245483398, 
+            0.10624721646308899, 0.08942484855651855, 0.12727294862270355, 0.06655122339725494, 0.07440652698278427, 
+            0.08225951343774796, 0.09011077880859375, 0.09796074032783508, 0.10580970346927643, 0.11365785449743271]
+
+CAND_COLORS = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f', '#ff7f00','#cab2d6','#6a3d9a', '#90ee90', '#9B870C', '#2f4554', '#61a0a8', '#d48265', '#c23531']
+colors1 = CAND_COLORS[::2]
+colors2 = CAND_COLORS[1::2]
+
+font = {'family' : 'normal',
+        'size'   : 17}
+
+matplotlib.rc('font', **font)
+
+plt.clf()
+ks = [i*2 + 1 for i in range(15)]
+ax = plt.subplot(111)
+plt.plot(ks, FCN_accs, marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
+plt.plot(ks, CNN_accs, marker='*', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
+# plt.tight_layout()
+box = ax.get_position()
+ax.set_position([box.x0, box.y0 + box.height * 0.1,
+             box.width, box.height * 0.9])
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.178), ncol=2)
+plt.ylabel('average distance of attack')
+plt.xlabel('image size')
+plt.savefig('/vulcanscratch/songweig/plots/adv_pool/toy.png')
+
+
+
 
 for i in range(4):
     plt.clf()
@@ -177,6 +210,7 @@ for i in range(4):
 
 
 import cv2
+import numpy as np
 from PIL import Image
 
 
@@ -186,7 +220,7 @@ for i in range(2):
     # plt.axis('off')
     # plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
     img = np.ones([150, 150])*0.5
-    img[75:85, 75:85] = i
+    img[70:80, 70:80] = i
     # im = Image.fromarray(np.uint8((batch[0][i][0]+1)/2* 255), 'L')
     im = Image.fromarray(np.uint8(img* 255), 'L')
     im.save('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)

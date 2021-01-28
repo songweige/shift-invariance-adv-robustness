@@ -10,6 +10,10 @@ class simple_FC_2D(nn.Module):
             nn.ReLU()
         )
         self.classifier = nn.Linear(n_hidden, 2)
+        # self.features[1].bias.data.zero_()
+        # self.features[1].weight.data.zero_()
+        # self.classifier.bias.data.zero_()
+        # self.classifier.weight.data.zero_()
     def forward(self, x):
         out = self.features(x)
         out = self.classifier(out)
@@ -26,6 +30,10 @@ class simple_Conv_2D(nn.Module):
             nn.AdaptiveAvgPool2d(1)
         )
         self.classifier = nn.Linear(n_hidden, 2)
+        # self.features[0].bias.data.zero_()
+        # self.features[0].weight.data.zero_()
+        # self.classifier.bias.data.zero_()
+        # self.classifier.weight.data.zero_()
     def forward(self, x):
         if len(x.size()) == 3:
             x = x.unsqueeze(1)
