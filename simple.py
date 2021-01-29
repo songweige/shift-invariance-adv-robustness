@@ -1,4 +1,4 @@
-'''Train MNIST with PyTorch.'''
+'''Train Simple with PyTorch.'''
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -22,6 +22,58 @@ from art.attacks.evasion import ProjectedGradientDescentPyTorch
 from art.estimators.classification import PyTorchClassifier
 
 
+def create_dataset_dots(k=100):
+    X_1 = np.zeros([1, 1, k, k])
+    X_1[:, :, k//2, k//2] = 1
+    X_2 = np.zeros([1, 1, k, k])
+    X_2[:, :, k//2, k//2] = -1
+    Xs = np.concatenate([X_1, X_2], 0)
+    ys = np.hstack([np.zeros(1), np.ones(1)])
+    return Xs, ys
+
+
+class simple_FC_2D(nn.Module):
+    def __init__(self, n_input, n_hidden):
+        super(simple_FC_2D, self).__init__()
+        self.features = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(n_input, n_hidden),
+            nn.ReLU()
+        )
+        self.classifier = nn.Linear(n_hidden, 2)
+        # self.features[1].bias.data.zero_()
+        # self.features[1].weight.data.zero_()
+        # self.classifier.bias.data.zero_()
+        # self.classifier.weight.data.zero_()
+    def forward(self, x):
+        out = self.features(x)
+        out = self.classifier(out)
+        return out
+
+
+class simple_Conv_2D(nn.Module):
+    def __init__(self, n_hidden, kernel_size=28):
+        super(simple_Conv_2D, self).__init__()
+        padding_size = kernel_size // 2
+        self.features = nn.Sequential(
+            nn.Conv2d(1, n_hidden, kernel_size=kernel_size, padding=padding_size, padding_mode='circular'),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d(1)
+        )
+        self.classifier = nn.Linear(n_hidden, 2)
+        # self.features[0].bias.data.zero_()
+        # self.features[0].weight.data.zero_()
+        # self.classifier.bias.data.zero_()
+        # self.classifier.weight.data.zero_()
+    def forward(self, x):
+        if len(x.size()) == 3:
+            x = x.unsqueeze(1)
+        out = self.features(x)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+
 # Training
 def train(epoch, net, batch):
     print('\nEpoch: %d' % epoch)
@@ -41,8 +93,9 @@ def train(epoch, net, batch):
     _, predicted = outputs.max(1)
     total += targets.size(0)
     correct += predicted.eq(targets).sum().item()
-    progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    # progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+    #          % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    return train_loss/(batch_idx+1)
 
 
 def test(epoch, net, model_name, batch):
@@ -61,8 +114,8 @@ def test(epoch, net, model_name, batch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-        progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        # progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
     if epoch == start_epoch+199:
@@ -91,16 +144,17 @@ def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
+model = 'FC'
 
 dists = []
-for i in range(15):
+losses = []
+for i in range(30):
     k = i*2 + 1
     # k = 25
     # batch = create_dataset_sin_cos(k)
     batch = create_dataset_dots(k)
-    n_hidden = 100
+    n_hidden = 50
     kernel_size = k
-    # model = 'Conv'
     # Model
     if model == 'FC':
         net = simple_FC_2D(k*k, n_hidden)
@@ -113,7 +167,7 @@ for i in range(15):
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
     torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
     for epoch in range(start_epoch, start_epoch+1000):
-        train(epoch, net, torch_batch)
+        loss_epoch = train(epoch, net, torch_batch)
         test(epoch, net, 'simple_%s_%d'%(model, n_hidden), torch_batch)
         # scheduler.step()
     inputs, targets = torch_batch
@@ -136,7 +190,15 @@ for i in range(15):
             adv_norm/total
         ))
     dists.append(adv_norm/total)
+    losses.append(loss_epoch)
 
+
+torchvision.utils.save_image(inputs[0]/2.+0.5, 'clean1.png')
+torchvision.utils.save_image(inputs[1]/2.+0.5, 'clean2.png')
+torchvision.utils.save_image(adv[0]/2.+0.5, 'fc_adv1.png')
+torchvision.utils.save_image(adv[1]/2.+0.5, 'fc_adv2.png')
+torchvision.utils.save_image(adv[0]/2.+0.5, 'conv_adv1.png')
+torchvision.utils.save_image(adv[1]/2.+0.5, 'conv_adv2.png')
 
 net.features[0].bias.grad
 net.features[0].weight.data[0, 0]
@@ -174,7 +236,7 @@ FCN_accs = [1.0039215087890625, 0.9850332140922546, 0.976715087890625, 0.9680507
             0.9746283292770386, 0.9760518670082092, 0.9730303287506104, 0.9819855093955994, 0.9761784076690674]
 
 CNN_accs = [1.0039215087890625, 0.33606475591659546, 0.203160360455513, 0.1456798017024994, 0.11684942245483398, 
-            0.10624721646308899, 0.08942484855651855, 0.12727294862270355, 0.06655122339725494, 0.07440652698278427, 
+            0.10624721646308899, 0.08942484855651855, 0.07604095339775085, 0.06655122339725494, 0.07440652698278427, 
             0.08225951343774796, 0.09011077880859375, 0.09796074032783508, 0.10580970346927643, 0.11365785449743271]
 
 CAND_COLORS = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f', '#ff7f00','#cab2d6','#6a3d9a', '#90ee90', '#9B870C', '#2f4554', '#61a0a8', '#d48265', '#c23531']
@@ -189,16 +251,17 @@ matplotlib.rc('font', **font)
 plt.clf()
 ks = [i*2 + 1 for i in range(15)]
 ax = plt.subplot(111)
-plt.plot(ks, FCN_accs, marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
-plt.plot(ks, CNN_accs, marker='*', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
+plt.plot(ks, FCN_accs[:15], marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
+plt.plot(ks, CNN_accs[:15], marker='^', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
+plt.plot(ks, [1.0/(i*2+1) for i in range(15)], marker='*', linewidth=3, markersize=8, label='CNTK', color=colors2[1], alpha=0.8)
 # plt.tight_layout()
 box = ax.get_position()
 ax.set_position([box.x0, box.y0 + box.height * 0.1,
              box.width, box.height * 0.9])
-plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.178), ncol=2)
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.178), ncol=3)
 plt.ylabel('average distance of attack')
-plt.xlabel('image size')
-plt.savefig('/vulcanscratch/songweig/plots/adv_pool/toy.png')
+plt.xlabel('image width')
+plt.savefig('/vulcanscratch/songweig/plots/adv_pool/toy2.png')
 
 
 
