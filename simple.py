@@ -93,8 +93,8 @@ def train(epoch, net, batch):
     _, predicted = outputs.max(1)
     total += targets.size(0)
     correct += predicted.eq(targets).sum().item()
-    # progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-    #          % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     return train_loss/(batch_idx+1)
 
 
@@ -114,8 +114,8 @@ def test(epoch, net, model_name, batch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-        # progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-        #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        progress_bar(batch_idx, 1, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                     % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
     if epoch == start_epoch+199:
@@ -144,16 +144,16 @@ def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-model = 'FC'
+model = 'Conv'
 
 dists = []
 losses = []
-for i in range(30):
-    k = i*2 + 1
+for i in range(15):
+    k = 0 + i*2 + 1
     # k = 25
     # batch = create_dataset_sin_cos(k)
     batch = create_dataset_dots(k)
-    n_hidden = 50
+    n_hidden = 100
     kernel_size = k
     # Model
     if model == 'FC':
@@ -166,9 +166,15 @@ for i in range(30):
     optimizer = optim.SGD(net.parameters(), lr=1)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
     torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
-    for epoch in range(start_epoch, start_epoch+1000):
+    for epoch in range(start_epoch, start_epoch+4000):
         loss_epoch = train(epoch, net, torch_batch)
         test(epoch, net, 'simple_%s_%d'%(model, n_hidden), torch_batch)
+        if epoch == 999:
+        	optimizer.param_groups[0]['lr'] = 0.5
+        if epoch == 1999:
+        	optimizer.param_groups[0]['lr'] = 0.1
+        if epoch == 2999:
+        	optimizer.param_groups[0]['lr'] = 0.01
         # scheduler.step()
     inputs, targets = torch_batch
     n_steps = [1000]
