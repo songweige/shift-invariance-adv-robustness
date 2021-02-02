@@ -151,18 +151,37 @@ plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/clean.png')
 ########################################################################################################################################################
 ### draw clean accuracy
 ########################################################################################################################################################
+CAND_COLORS = ['#e31a1c','#9B870C', '#1f78b4','#a6cee3','#33a02c','#b2df8a', '#ff7f00','#6a3d9a', '#61a0a8', '#c23531']
 
 
+model_name_selected = {'alexnet':'AlexNet', 'resnet50':'ResNet-50', 'vgg11':'VGG-11', 'vgg11_bn':'VGG-11+BN', 'vgg19':'VGG-19', 'vgg19_bn':'VGG-19+BN', 'densenet121':'DenseNet-121', 'mobilenet_v2':'MobileNet V2'}
 strength_norm = {'L_2': {'0.55': '0.125', '1.09': '0.25', '2.18': '0.5', '4.37': '1'}, 'L_inf': {'0.01': '0.5/255', '0.02': '1/255', '0.03': '2/255', '0.07': '4/255'}}
-colors = ['#003f5c', '#ffa600', '#444e86', '#955196', '#dd5182', '#ff6e54', '#ffa600', 'green']
+# colors = ['#003f5c', '#ffa600', '#444e86', '#955196', '#dd5182', '#ff6e54', '#ffa600', 'green']
 for attack in base_cnns:
+	fig = plt.figure()
 	epss = base_cnns[attack]['alexnet']
 	n_eps = len(epss)
 	plt.clf()
-	for color, model_name in zip(colors[::-1], L2_acc.keys()):
+	for color, model_name in zip(CAND_COLORS, model_name_selected.keys()):
 		# plt.scatter(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], label=model_name, color=color)
-		plt.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name, color=color)
+		if 'BN' in model_name_selected[model_name]:
+			plt.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], linestyle='dashed', marker='o', label=model_name_selected[model_name], color=color)
+		else:
+			plt.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name_selected[model_name], color=color)
 	plt.xticks(np.arange(n_eps+1), [0]+[strength_norm[attack][eps] for eps in list(epss.keys())])
-	plt.legend(loc='upper right', ncol=3)
-	plt.title('test accuracy under %s adversarial attack'%(attack))
 	plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/%s_models.png'%(attack))
+
+
+
+fig = plt.figure(dpi=350, figsize=(9.5, 1))
+ax = fig.add_axes([0, 0, 0.001, 0.001])
+for color, model_name in zip(CAND_COLORS, model_name_selected.keys()):
+	if 'BN' in model_name_selected[model_name]:
+		ax.plot(range(10), range(10), linestyle='dashed', marker='o', label=model_name_selected[model_name], color=color)
+	else:
+		ax.plot(range(10), range(10), marker='o', label=model_name_selected[model_name], color=color)
+
+
+
+plt.legend(loc="upper center", bbox_to_anchor=(500, 800), ncol=4)
+plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/legend.png')

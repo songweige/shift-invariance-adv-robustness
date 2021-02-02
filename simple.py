@@ -148,9 +148,8 @@ model = 'Conv'
 
 dists = []
 losses = []
-for i in range(15):
-    k = 0 + i*2 + 1
-    # k = 25
+for i in range(1):
+    k = 30 + i*2 + 1
     # batch = create_dataset_sin_cos(k)
     batch = create_dataset_dots(k)
     n_hidden = 100
@@ -166,7 +165,7 @@ for i in range(15):
     optimizer = optim.SGD(net.parameters(), lr=1)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
     torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
-    for epoch in range(start_epoch, start_epoch+4000):
+    for epoch in range(start_epoch, start_epoch+30000):
         loss_epoch = train(epoch, net, torch_batch)
         test(epoch, net, 'simple_%s_%d'%(model, n_hidden), torch_batch)
         if epoch == 999:
@@ -175,6 +174,8 @@ for i in range(15):
         	optimizer.param_groups[0]['lr'] = 0.1
         if epoch == 2999:
         	optimizer.param_groups[0]['lr'] = 0.01
+        if epoch > 3000 and epoch % 1000 == 0:
+            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 10
         # scheduler.step()
     inputs, targets = torch_batch
     n_steps = [1000]
@@ -210,29 +211,30 @@ net.features[0].bias.grad
 net.features[0].weight.data[0, 0]
 net.features[1].weight.data[0].abs().argmax()
 net.features[1].weight.grad
-# classifier = PyTorchClassifier(
-#     model=net,
-#     loss=criterion,
-#     optimizer=optimizer,
-#     clip_values=(0., 1.),
-#     input_shape=(1, 28, 28),
-#     nb_classes=2,
-# )
-# print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
+classifier = PyTorchClassifier(
+    model=net,
+    loss=criterion,
+    optimizer=optimizer,
+    clip_values=(0., 1.),
+    input_shape=(1, k, k),
+    nb_classes=2,
+)
+print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
-# inputs, targets = torch_batch
-# attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.5, 0.6, 0.7, 0.8, 0.9]]]
-# for norm, epsilons in attack_params:
-#     for epsilon in epsilons:
-#         attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
-#         # attack = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
-#         adv_correct = 0
-#         total = 0
-#         inputs_adv = attack.generate(x=inputs)
-#         adv_predicted = classifier.predict(inputs_adv).argmax(1)
-#         adv_correct += (adv_predicted==targets.numpy()).sum().item()
-#         total += targets.size(0)
-#         print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct/total))
+inputs, targets = torch_batch
+attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.5, 0.6, 0.7, 0.8, 0.9]]]
+attack_params = [[2, [i*15+30 for i in range(5)]], [np.inf, [0.5, 0.6, 0.7, 0.8, 0.9]]]
+for norm, epsilons in attack_params:
+    for epsilon in epsilons:
+        # attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
+        attack = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
+        adv_correct = 0
+        total = 0
+        inputs_adv = attack.generate(x=inputs)
+        adv_predicted = classifier.predict(inputs_adv).argmax(1)
+        adv_correct += (adv_predicted==targets.numpy()).sum().item()
+        total += targets.size(0)
+        print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct/total))
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -254,20 +256,22 @@ font = {'family' : 'normal',
 
 matplotlib.rc('font', **font)
 
-plt.clf()
-ks = [i*2 + 1 for i in range(15)]
-ax = plt.subplot(111)
-plt.plot(ks, FCN_accs[:15], marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
-plt.plot(ks, CNN_accs[:15], marker='^', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
-plt.plot(ks, [1.0/(i*2+1) for i in range(15)], marker='*', linewidth=3, markersize=8, label='CNTK', color=colors2[1], alpha=0.8)
-# plt.tight_layout()
-box = ax.get_position()
-ax.set_position([box.x0, box.y0 + box.height * 0.1,
-             box.width, box.height * 0.9])
-plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.178), ncol=3)
-plt.ylabel('average distance of attack')
-plt.xlabel('image width')
-plt.savefig('/vulcanscratch/songweig/plots/adv_pool/toy2.png')
+with plt.style.context('bmh'):
+    fig = plt.figure(dpi=250, figsize=(10, 5.5))
+    plt.clf()
+    ks = [i*2 + 1 for i in range(15)]
+    ax = plt.subplot(111)
+    plt.plot(ks, FCN_accs[:15], marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
+    plt.plot(ks, CNN_accs[:15], marker='^', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
+    plt.plot(ks, [1.0/(i*2+1) for i in range(15)], linestyle='dotted', marker='*', linewidth=3, markersize=8, label='CNTKKKK', color=colors2[1], alpha=0.8)
+    # plt.tight_layout()
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                 box.width, box.height * 0.9])
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.178), ncol=3)
+    # plt.ylabel('average distance of attack')
+    # plt.xlabel('image width')
+    plt.savefig('/vulcanscratch/songweig/plots/adv_pool/toy2.png')
 
 
 

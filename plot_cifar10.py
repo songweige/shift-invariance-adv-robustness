@@ -47,7 +47,8 @@ for model_name in L2_acc:
 			cnns[attack][model_name][strength] = float(acc)
 
 
-font = {'family' : 'normal',
+font = {'family' : 'serif',
+ 		'serif':   'Times',
         'size'   : 15}
 
 matplotlib.rc('font', **font)
@@ -77,11 +78,11 @@ for attack in list(cnns.keys())[:-1]:
 
 
 
-model_names = list(clean_acc.keys())
-fig = plt.figure(dpi=350, figsize=(8, 0.5))
+model_names = {'alexnet': 'AlexNet', 'resnet_18': 'ResNet-18', 'resnet_34': 'ResNet-34', 'resnet_50': 'ResNet-50', 'resnet_101': 'ResNet-101', 'resnet_152':'ResNet-152'}
+fig = plt.figure(dpi=350, figsize=(13, 0.8))
 ax = fig.add_axes([0, 0, 0.001, 0.001])
-for i in range(len(model_names)):
-    ax.bar(range(10), range(10), label=model_names[i], color=colors2[i])
+for i, model_name in enumerate(model_names):
+    ax.bar(range(10), range(10), label=model_names[model_name], color=colors2[i])
 
 
 
