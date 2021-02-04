@@ -4,6 +4,7 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.font_manager
 
 log_dir_imagenet = '/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm'
 model_names = ['alexnet', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn', 
@@ -153,7 +154,7 @@ plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/clean.png')
 ########################################################################################################################################################
 CAND_COLORS = ['#e31a1c','#9B870C', '#1f78b4','#a6cee3','#33a02c','#b2df8a', '#ff7f00','#6a3d9a', '#61a0a8', '#c23531']
 
-
+plt.rc('font', family='serif', serif='Times', size=18)
 model_name_selected = {'alexnet':'AlexNet', 'resnet50':'ResNet-50', 'vgg11':'VGG-11', 'vgg11_bn':'VGG-11+BN', 'vgg19':'VGG-19', 'vgg19_bn':'VGG-19+BN', 'densenet121':'DenseNet-121', 'mobilenet_v2':'MobileNet V2'}
 strength_norm = {'L_2': {'0.55': '0.125', '1.09': '0.25', '2.18': '0.5', '4.37': '1'}, 'L_inf': {'0.01': '0.5/255', '0.02': '1/255', '0.03': '2/255', '0.07': '4/255'}}
 # colors = ['#003f5c', '#ffa600', '#444e86', '#955196', '#dd5182', '#ff6e54', '#ffa600', 'green']
@@ -185,3 +186,51 @@ for color, model_name in zip(CAND_COLORS, model_name_selected.keys()):
 
 plt.legend(loc="upper center", bbox_to_anchor=(500, 800), ncol=4)
 plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/legend.png')
+
+
+
+########################################################################################################################################################
+### better draw
+########################################################################################################################################################
+
+plt.clf()
+plt.rc('font', family='sans-serif', serif='Times', weight='normal', size=15)
+fig, axs = plt.subplots(1, 2, figsize=(8,4), dpi=200,
+                                     sharey=True, tight_layout=True)
+
+CAND_COLORS = ['#e31a1c','#9B870C', '#1f78b4','#a6cee3','#33a02c','#b2df8a', '#ff7f00','#6a3d9a', '#61a0a8', '#c23531']
+
+model_name_selected = {'alexnet':'AlexNet', 'resnet50':'ResNet-50', 'vgg11':'VGG-11', 'vgg11_bn':'VGG-11+BN', 'vgg19':'VGG-19', 'vgg19_bn':'VGG-19+BN', 'densenet121':'DenseNet-121', 'mobilenet_v2':'MobileNet V2'}
+strength_norm = {'L_2': {'0.55': '0.125', '1.09': '0.25', '2.18': '0.5', '4.37': '1'}, 'L_inf': {'0.01': '0.5/255', '0.02': '1/255', '0.03': '2/255', '0.07': '4/255'}}
+# colors = ['#003f5c', '#ffa600', '#444e86', '#955196', '#dd5182', '#ff6e54', '#ffa600', 'green']
+title_font = 18
+plt.ylim(0, 80)
+for ax, attack in zip(axs, base_cnns):
+	if attack == 'L_2':
+		ax.set_title(r'$L_2$ robustness', fontsize=title_font)
+	else:
+		ax.set_title(r'$L_{\infty}$ robustness', fontsize=title_font)
+	ax.set_xlabel(r'$\epsilon$', fontsize=title_font)
+	epss = base_cnns[attack]['alexnet']
+	n_eps = len(epss)
+	for color, model_name in zip(CAND_COLORS, model_name_selected.keys()):
+		# plt.scatter(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], label=model_name, color=color)
+		if 'BN' in model_name_selected[model_name]:
+			ax.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], linestyle='dashed', marker='o', label=model_name_selected[model_name], color=color)
+		else:
+			ax.plot(np.arange(n_eps+1), [clean_accs[model_name][0]]+[base_cnns[attack][model_name][strength] for strength in epss], marker='o', label=model_name_selected[model_name], color=color)
+	# ax.set_xticks(np.arange(n_eps+1), [0]+[strength_norm[attack][eps] for eps in list(epss.keys())])
+	ax.set_xticks(np.arange(n_eps+1))
+	ax.set_xticklabels([0]+[strength_norm[attack][eps] for eps in list(epss.keys())])
+	if attack == 'L_2':
+		ax.set_ylabel('Accuracy', fontsize=title_font)
+		fig.legend(loc='upper center',
+		           ncol=4, bbox_to_anchor=(0.52,1.15), columnspacing=0.5, borderaxespad=0.2, handletextpad=0.2,
+		            borderpad=0.2, fontsize=15)
+
+
+# fm = matplotlib.font_manager.json_load("/cfarhomes/songweig/.cache/matplotlib/fontlist-v330.json")
+# fm.findfont("serif", rebuild_if_missing=False)
+# fm.findfont("serif", fontext="afm", rebuild_if_missing=False)
+
+plt.savefig('/vulcanscratch/songweig/plots/adv_pool/imagenet/imagenet.png', dpi=300, bbox_inches='tight')
