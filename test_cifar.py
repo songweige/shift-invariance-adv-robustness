@@ -88,6 +88,7 @@ if args.n_data < 50000:
     print("Accuracy on clean train examples: {:.2f}%".format(checkpoint['train_acc']))
 else:
     checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
+    
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']
@@ -100,7 +101,8 @@ classifier = PyTorchClassifier(
 )
 print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
-attack_params = [[2, [32/256., 64./256., 128./256, 256/256, 1.5]], [np.inf, [1/256., 2/256., 4/256., 8/256., 16/256.]]]
+# attack_params = [[2, [32/256., 64./256., 128./256, 256/256, 1.5]], [np.inf, [1/256., 2/256., 4/256., 8/256., 16/256.]]]
+attack_params = [[2, [0.5, 1.0, 1.5, 2.0]], [np.inf, [2/256., 4/256., 8/256., 16/256.]]]
 # attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
 # import ipdb;ipdb.set_trace()
 
