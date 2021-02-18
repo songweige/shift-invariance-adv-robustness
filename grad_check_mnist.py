@@ -68,68 +68,101 @@ def l2_norm(x: torch.Tensor) -> torch.Tensor:
     return squared_l2_norm(x).sqrt()
 
 args.model = 'Conv'
+args.model = 'FC'
 
-for n_hidden in [10000]:
-    args.n_hidden = n_hidden
-    # Model
-    if args.model == 'FC':
-        net = simple_FC(args.n_hidden)
-    elif args.model == 'FC_linear':
-        net = simple_FC_linear(args.n_hidden)
-    elif args.model == 'Conv':
-        net = simple_Conv(args.n_hidden, args.kernel_size)
-    elif args.model == 'Conv_max':
-        net = simple_Conv_max(args.n_hidden, args.kernel_size)
-    elif args.model == 'Conv_linear':
-        net = simple_Conv_linear(args.n_hidden, args.kernel_size)
-    elif args.model == 'Conv_linear_max':
-        net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
-    elif args.model == 'Conv_linear_nopooling':
-        net = simple_Conv_linear_nopooling(args.n_hidden, args.kernel_size)
-    elif args.model == 'Conv_linear_pooling':
-        net = simple_Conv_linear_pooling(args.n_hidden, args.kernel_size)
-    elif args.model.startswith('resnet'):
-        n_layer = args.model.split('_')[-1]
-        if 'no_pooling' in args.model:
-            net = resnet_dict[n_layer](pooling=False)
-        elif 'max_pooling' in args.model:
-            net = resnet_dict[n_layer](pooling=True, max_pooling=True)
-        else:
-            net = resnet_dict[n_layer](pooling=True, max_pooling=False)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    net = net.cuda()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                          momentum=0.9, weight_decay=5e-4)
-    if args.epoch == 200:
-        if 'Conv' in args.model and args.kernel_size != 28:
-            checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
-        else:
-            checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d.pth'%(args.model, args.n_hidden))
+# for n_hidden in [10000]:
+# args.n_hidden = n_hidden
+args.n_hidden = 5000
+# Model
+if args.model == 'FC':
+    net = simple_FC(args.n_hidden)
+elif args.model == 'FC_linear':
+    net = simple_FC_linear(args.n_hidden)
+elif args.model == 'Conv':
+    net = simple_Conv(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_max':
+    net = simple_Conv_max(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_linear':
+    net = simple_Conv_linear(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_linear_max':
+    net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_linear_nopooling':
+    net = simple_Conv_linear_nopooling(args.n_hidden, args.kernel_size)
+elif args.model == 'Conv_linear_pooling':
+    net = simple_Conv_linear_pooling(args.n_hidden, args.kernel_size)
+elif args.model.startswith('resnet'):
+    n_layer = args.model.split('_')[-1]
+    if 'no_pooling' in args.model:
+        net = resnet_dict[n_layer](pooling=False)
+    elif 'max_pooling' in args.model:
+        net = resnet_dict[n_layer](pooling=True, max_pooling=True)
     else:
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
-    net.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
-    print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
-    adv_correct = 0
-    total = 0
-    w_one = np.ones(784)/28.
-    # np.linalg.norm(w_one)
-    cos_thetas = [[] for _ in range(10)]
+        net = resnet_dict[n_layer](pooling=True, max_pooling=False)
+print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+net = net.cuda()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=args.lr,
+                      momentum=0.9, weight_decay=5e-4)
+if args.epoch == 200:
+    if 'Conv' in args.model and args.kernel_size != 28:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
+    else:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d.pth'%(args.model, args.n_hidden))
+else:
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
+net.load_state_dict(checkpoint['net'])
+best_acc = checkpoint['acc']
+start_epoch = checkpoint['epoch']
+print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
+
+
+adv_correct = 0
+total = 0
+w_one = np.ones(784)/28.
+# np.linalg.norm(w_one)
+cos_thetas = [[] for _ in range(10)]
+for batch_idx, (inputs, targets) in enumerate(testloader):
+    inputs.requires_grad = True
+    net.zero_grad()
+    output = net(inputs.cuda())
+    loss = criterion(output, targets.cuda())
+    loss.backward()
+    grad = inputs.grad.cpu().data.numpy().reshape([32, 784])
+    grad_norm = grad/np.linalg.norm(grad, axis=1, keepdims=True)
+    coss = np.matmul(grad_norm, w_one)
+    for cos, target in zip(coss, targets):
+        cos_thetas[target].append(cos)
+randvec = np.random.random(784) - 0.5
+randvec_norm = randvec / np.linalg.norm(randvec)
+(randvec_norm*w_one).sum()
+print(' '.join(['%.2f±%.2f'%(np.mean(cos_thetas[i]), np.std(cos_thetas[i])) for i in range(10)]))
+print(' '.join(['%.2f±%.2f'%(np.mean(np.abs(np.array(cos_thetas[i]))), np.std(np.abs(np.array(cos_thetas[i])))) for i in range(10)]))
+
+
+
+for delta in range(5):
+    delta = delta / 28.
+    print(delta)
+    corrects_p = [0 for _ in range(10)]
+    corrects_n = [0 for _ in range(10)]
+    corrects_r = [0 for _ in range(10)]
+    totals = [0 for _ in range(10)]
     for batch_idx, (inputs, targets) in enumerate(testloader):
-        inputs.requires_grad = True
-        net.zero_grad()
-        output = net(inputs.cuda())
-        loss = criterion(output, targets.cuda())
-        loss.backward()
-        grad = inputs.grad.cpu().data.numpy().reshape([32, 784])
-        grad_norm = grad/np.linalg.norm(grad, axis=1, keepdims=True)
-        coss = np.matmul(grad_norm, w_one)
-        for cos, target in zip(coss, targets):
-            cos_thetas[target].append(cos)
-    randvec = np.random.random(784) - 0.5
-    randvec_norm = randvec / np.linalg.norm(randvec)
-    (randvec_norm*w_one).sum()
-    print(' '.join(['%.2f±%.2f'%(np.mean(cos_thetas[i]), np.std(cos_thetas[i])) for i in range(10)]))
-    print(' '.join(['%.2f±%.2f'%(np.mean(np.abs(np.array(cos_thetas[i]))), np.std(np.abs(np.array(cos_thetas[i])))) for i in range(10)]))
+        output = net(inputs.cuda() + delta)
+        correct = (output.argmax(1).cpu()==targets)
+        for c, target in zip(correct, targets):
+            corrects_p[target] += c
+            totals[target] += 1
+        output = net(inputs.cuda() - delta)
+        correct = (output.argmax(1).cpu()==targets)
+        for c, target in zip(correct, targets):
+            corrects_n[target] += c
+        randvec = np.random.random(784) - 0.5
+        randvec_norm = torch.FloatTensor(randvec / np.linalg.norm(randvec)).cuda()*delta
+        output = net(inputs.cuda() + randvec_norm.reshape(1, 1, 28, 28))
+        correct = (output.argmax(1).cpu()==targets)
+        for c, target in zip(correct, targets):
+            corrects_r[target] += c
+    print(' '.join(['%.2f'%(corrects_r[i]/totals[i]) for i in range(10)]))
+    print(' '.join(['%.2f'%(corrects_p[i]/totals[i]) for i in range(10)]))
+    print(' '.join(['%.2f'%(corrects_n[i]/totals[i]) for i in range(10)]))
