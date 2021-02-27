@@ -44,6 +44,7 @@ transform_test = transforms.Compose([
 
 trainset = torchvision.datasets.MNIST(
     root='/vulcanscratch/songweig/datasets/mnist', train=True, download=True, transform=transform_train)
+trainset = torch.utils.data.Subset(trainset, indices=np.arange(4000))
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=128, shuffle=True, num_workers=2)
 
@@ -100,7 +101,9 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 
 
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+criterion = nn.MSELoss()
+
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
@@ -114,16 +117,19 @@ def train(epoch, net):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
+        targets = torch.nn.functional.one_hot(targets, num_classes=10).float()
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
+        # import ipdb; ipdb.set_trace()
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
         _, predicted = outputs.max(1)
         total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
+        correct += predicted.eq(targets.argmax(1)).sum().item()
+        # correct += predicted.eq(targets).sum().item()
         if args.verbos > 1:
             progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -137,40 +143,42 @@ def test(epoch, net, model_name):
     total = 0
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
+            targets = torch.nn.functional.one_hot(targets, num_classes=10).float()
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = net(inputs)
             loss = criterion(outputs, targets)
             test_loss += loss.item()
             _, predicted = outputs.max(1)
             total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+            correct += predicted.eq(targets.argmax(1)).sum().item()
+            # correct += predicted.eq(targets).sum().item()
             if args.verbos > 1:
                 progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
-    if epoch % 10 == 0:
-        state = {
-            'net': net.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/%s_%s.pth'%(model_name, epoch))
-    # if acc > best_acc:
-    # if epoch == start_epoch+199:
-    #     print('Saving..')
+    # if epoch % 10 == 0:
     #     state = {
     #         'net': net.state_dict(),
     #         'acc': acc,
     #         'epoch': epoch,
     #     }
-    #     if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist'):
-    #         os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist')
-    #     torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist/%s.pth'%model_name)
-    #     best_acc = acc
+    #     torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/%s_%s.pth'%(model_name, epoch))
+    # if acc > best_acc:
+    if epoch == start_epoch+99:
+        print('Saving..')
+        state = {
+            'net': net.state_dict(),
+            'acc': acc,
+            'epoch': epoch,
+        }
+        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k'):
+            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k')
+        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/%s.pth'%model_name)
+        best_acc = acc
 
 
-for epoch in range(start_epoch, start_epoch+200):
+for epoch in range(start_epoch, start_epoch+100):
     train(epoch, net)
     if 'Conv' in args.model and args.kernel_size != 28:
         test(epoch, net, 'simple_%s_%d_%d'%(args.model, args.kernel_size, args.n_hidden))

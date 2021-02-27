@@ -106,11 +106,12 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr,
 
 if args.epoch == 200:
     if 'Conv' in args.model and args.kernel_size != 28:
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
     else:
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist/simple_%s_%d.pth'%(args.model, args.n_hidden))
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d.pth'%(args.model, args.n_hidden))
 else:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
+    # checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
 
     
 net.load_state_dict(checkpoint['net'])
@@ -137,6 +138,37 @@ start_epoch = checkpoint['epoch']
 #         adv_norm/total
 #     ))
 
+train_loss = 0.
+test_loss = 0.
+total = 0.
+correct = 0.
+for batch_idx, (inputs, targets) in enumerate(trainloader):
+    inputs, targets = inputs.to(device), targets.to(device)
+    outputs = net(inputs)
+    loss = criterion(outputs, targets)
+    train_loss += loss.item()
+    _, predicted = outputs.max(1)
+    total += targets.size(0)
+    correct += predicted.eq(targets).sum().item()
+print('Training Loss: %.3f | Acc: %.3f%%' % (train_loss/(batch_idx+1), 100.*correct/total))
+
+
+
+total = 0.
+correct = 0.
+for batch_idx, (inputs, targets) in enumerate(testloader):
+    inputs, targets = inputs.to(device), targets.to(device)
+    outputs = net(inputs)
+    loss = criterion(outputs, targets)
+    train_loss += loss.item()
+    _, predicted = outputs.max(1)
+    total += targets.size(0)
+    correct += predicted.eq(targets).sum().item()
+print('Test Loss: %.3f | Acc: %.3f%%' % (train_loss/(batch_idx+1), 100.*correct/total))
+
+
+
+
 classifier = PyTorchClassifier(
     model=net,
     loss=criterion,
@@ -153,10 +185,15 @@ for norm, epsilons in attack_params:
         attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
         # attack = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
         adv_correct = 0
+        adv_loss = 0
         total = 0
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs_adv = attack.generate(x=inputs)
+            # print(inputs.shape, inputs_adv.shape)
+            outputs_adv = net(torch.FloatTensor(inputs_adv).cuda())
+            loss = criterion(outputs_adv, targets.cuda())
+            adv_loss += loss.item()
             adv_predicted = classifier.predict(inputs_adv).argmax(1)
             adv_correct += (adv_predicted==targets.numpy()).sum().item()
             total += targets.size(0)
-        print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct/total))
+        print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%. Loss: {:.2f}".format(norm, epsilon, 100.*adv_correct/total, adv_loss/(batch_idx+1)))
