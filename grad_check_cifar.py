@@ -65,6 +65,7 @@ def l2_norm(x: torch.Tensor) -> torch.Tensor:
 
 args.model = 'alexnet'
 models = ['alexnet', 'resnet_18', 'resnet_34', 'resnet_50', 'resnet_101', 'resnet_152']
+models = ['alexnet']
 for args.model in models:
 # Model
     print('==> Building model..')
@@ -92,7 +93,7 @@ for args.model in models:
     total = 0
     w_one = np.ones(3*32*32)/(np.sqrt(3*32*32))
     # w_one = np.ones(32*32)/32
-    np.linalg.norm(w_one)
+    # np.linalg.norm(w_one)
     cos_thetas = [[] for _ in range(10)]
     grads = [[] for _ in range(10)]
     for batch_idx, (inputs, targets) in enumerate(testloader):
@@ -107,12 +108,13 @@ for args.model in models:
         # coss = np.matmul(grad_norm, w_one)
         # for cos, target in zip(coss, targets):
         #     cos_thetas[target].append(np.abs(cos))
-        for g, target in zip(grad, targets):
-            cos_thetas[target].append(g)
+        for g, target in zip(grad_norm, targets):
+            grads[target].append(g)
     # print(' '.join(['%.2f±%.2f'%(np.mean(cos_thetas[i]), np.std(cos_thetas[i])) for i in range(10)]))
     for i in range(10):
-        mean_direction = np.mean(np.array(grads[i]), 1)
-        cos_theta[i] = [np.matmul(grad_norm, mean_direction) for grad in grads]
+        mean_direction = np.mean(np.array(grads[i]), 0)
+        mean_direction_norm = mean_direction/np.linalg.norm(mean_direction)
+        cos_thetas[i] = [np.matmul(grad, mean_direction) for grad in grads[i]]
     print(' '.join(['%.2f±%.2f'%(np.mean(cos_thetas[i]), np.std(cos_thetas[i])) for i in range(10)]))
     # for delta in range(5):
     #     delta = delta / (np.sqrt(3*32*32))
