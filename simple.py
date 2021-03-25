@@ -98,7 +98,7 @@ def train(epoch, net, batch):
     return train_loss/(batch_idx+1)
 
 
-def test(epoch, net, model_name, batch):
+def test(epoch, net, model_name, batch, total_epoch):
     global best_acc
     inputs, targets = batch
     batch_idx = 0
@@ -118,7 +118,7 @@ def test(epoch, net, model_name, batch):
                      % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
-    if epoch == start_epoch+199:
+    if epoch == start_epoch+(total_epoch-1):
         print('Saving..')
         state = {
             'net': net.state_dict(),
@@ -143,13 +143,15 @@ def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 model = 'Conv'
+total_epoch = 2000
+param_reuse = True
 
 dists = []
 losses = []
-for i in range(1):
-    k = 30 + i*2 + 1
+for i in range(15):
+    start_epoch = 0  # start from epoch 0 or last checkpoint epoch
+    k = i*2 + 1
     # batch = create_dataset_sin_cos(k)
     batch = create_dataset_dots(k)
     n_hidden = 100
@@ -160,23 +162,32 @@ for i in range(1):
     elif model == 'Conv':
         net = simple_Conv_2D(n_hidden, kernel_size)
     print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+    if param_reuse and k > 1:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/simple/simple_%s_%d.pth'%(model, k-2))
+        state_dict = checkpoint['net']
+        net.features[0].weight[:, :, 1:-1, 1:-1].data.copy_(state_dict['features.0.weight'].data)
+        net.features[0].bias.data.copy_(state_dict['features.0.bias'].data)
+        net.classifier.weight.data.copy_(state_dict['classifier.weight'].data)
+        net.classifier.bias.data.copy_(state_dict['classifier.bias'].data)
     net = net.cuda()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=1)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
     torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
-    for epoch in range(start_epoch, start_epoch+30000):
+    for epoch in range(start_epoch, start_epoch+total_epoch):
         loss_epoch = train(epoch, net, torch_batch)
-        test(epoch, net, 'simple_%s_%d'%(model, n_hidden), torch_batch)
+        test(epoch, net, 'simple_%s_%d'%(model, k), torch_batch, total_epoch)
         if epoch == 999:
         	optimizer.param_groups[0]['lr'] = 0.5
         if epoch == 1999:
         	optimizer.param_groups[0]['lr'] = 0.1
         if epoch == 2999:
         	optimizer.param_groups[0]['lr'] = 0.01
-        if epoch > 3000 and epoch % 1000 == 0:
+        if epoch > 3000 and (epoch+1) % 1000 == 0:
             optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 10
         # scheduler.step()
+        if param_reuse and k > 1 and (epoch+1) % 1000 == 0:
+            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 10
     inputs, targets = torch_batch
     n_steps = [1000]
     for n_step in n_steps:

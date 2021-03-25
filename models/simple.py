@@ -60,9 +60,10 @@ class simple_FC(nn.Module):
 
 
 class simple_Conv(nn.Module):
-    def __init__(self, n_hidden, kernel_size=28):
+    def __init__(self, n_hidden, kernel_size=28, padding_size=-1):
         super(simple_Conv, self).__init__()
-        padding_size = kernel_size // 2
+        if padding_size == -1:
+            padding_size = kernel_size // 2
         self.features = nn.Sequential(
         	nn.Conv2d(1, n_hidden, kernel_size=kernel_size, padding=padding_size, padding_mode='circular'),
         	nn.ReLU(),
@@ -200,6 +201,6 @@ class simple_Conv_linear_nopooling(nn.Module):
 
 
 def test():
-    net = simple_Conv_test(15, padding_size=14, kernel_size=28)
-    y = net(torch.randn(1, 1, 28, 28))
+    net = simple_Conv(100, kernel_size=28, padding_size=2)
+    y = net.features(torch.randn(1, 1, 28, 28))
     print(y.size())

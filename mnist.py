@@ -20,7 +20,8 @@ parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
 parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
-parser.add_argument('--verbos', default=0, type=int, help='level of verbos')
+parser.add_argument('--padding_size', default=-1, type=int, help='the size of circular padding')
+parser.add_argument('--verbose', default=0, type=int, help='level of verbos')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
@@ -44,7 +45,7 @@ transform_test = transforms.Compose([
 
 trainset = torchvision.datasets.MNIST(
     root='/vulcanscratch/songweig/datasets/mnist', train=True, download=True, transform=transform_train)
-trainset = torch.utils.data.Subset(trainset, indices=np.arange(4000))
+# trainset = torch.utils.data.Subset(trainset, indices=np.arange(4000))
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=128, shuffle=True, num_workers=2)
 
@@ -61,7 +62,7 @@ if args.model == 'FC':
 elif args.model == 'FC_linear':
     net = simple_FC_linear(args.n_hidden)
 elif args.model == 'Conv':
-    net = simple_Conv(args.n_hidden, args.kernel_size)
+    net = simple_Conv(args.n_hidden, args.kernel_size, args.padding_size)
 elif args.model == 'Conv_max':
     net = simple_Conv_max(args.n_hidden, args.kernel_size)
 elif args.model == 'Conv_linear':
@@ -101,8 +102,8 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 
 
-# criterion = nn.CrossEntropyLoss()
-criterion = nn.MSELoss()
+criterion = nn.CrossEntropyLoss()
+# criterion = nn.MSELoss()
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
@@ -117,7 +118,7 @@ def train(epoch, net):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        targets = torch.nn.functional.one_hot(targets, num_classes=10).float()
+        # targets = torch.nn.functional.one_hot(targets, num_classes=10).float()
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
@@ -128,9 +129,9 @@ def train(epoch, net):
         train_loss += loss.item()
         _, predicted = outputs.max(1)
         total += targets.size(0)
-        correct += predicted.eq(targets.argmax(1)).sum().item()
-        # correct += predicted.eq(targets).sum().item()
-        if args.verbos > 1:
+        # correct += predicted.eq(targets.argmax(1)).sum().item()
+        correct += predicted.eq(targets).sum().item()
+        if args.verbose > 1:
             progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -143,16 +144,16 @@ def test(epoch, net, model_name):
     total = 0
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
-            targets = torch.nn.functional.one_hot(targets, num_classes=10).float()
+            # targets = torch.nn.functional.one_hot(targets, num_classes=10).float()
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = net(inputs)
             loss = criterion(outputs, targets)
             test_loss += loss.item()
             _, predicted = outputs.max(1)
             total += targets.size(0)
-            correct += predicted.eq(targets.argmax(1)).sum().item()
-            # correct += predicted.eq(targets).sum().item()
-            if args.verbos > 1:
+            # correct += predicted.eq(targets.argmax(1)).sum().item()
+            correct += predicted.eq(targets).sum().item()
+            if args.verbose > 1:
                 progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
@@ -165,23 +166,23 @@ def test(epoch, net, model_name):
     #     }
     #     torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/%s_%s.pth'%(model_name, epoch))
     # if acc > best_acc:
-    if epoch == start_epoch+99:
+    if epoch == start_epoch+199:
         print('Saving..')
         state = {
             'net': net.state_dict(),
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k'):
-            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/%s.pth'%model_name)
+        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist_paddingsize'):
+            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/mnist_paddingsize')
+        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/mnist_paddingsize/%s.pth'%model_name)
         best_acc = acc
 
 
-for epoch in range(start_epoch, start_epoch+100):
+for epoch in range(start_epoch, start_epoch+200):
     train(epoch, net)
-    if 'Conv' in args.model and args.kernel_size != 28:
-        test(epoch, net, 'simple_%s_%d_%d'%(args.model, args.kernel_size, args.n_hidden))
+    if 'Conv' in args.model:
+        test(epoch, net, 'simple_%s_%d_%d_%d'%(args.model, args.kernel_size, args.padding_size, args.n_hidden))
     else:
         test(epoch, net, 'simple_%s_%d'%(args.model, args.n_hidden))
     scheduler.step()

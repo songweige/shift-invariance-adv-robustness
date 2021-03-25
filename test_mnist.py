@@ -26,6 +26,7 @@ parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
 parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
+parser.add_argument('--padding_size', default=0, type=int, help='the size of circular padding')
 parser.add_argument('--epoch', default=200, type=int, help='which epoch to load')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
@@ -75,7 +76,7 @@ if args.model == 'FC':
 elif args.model == 'FC_linear':
     net = simple_FC_linear(args.n_hidden)
 elif args.model == 'Conv':
-    net = simple_Conv(args.n_hidden, args.kernel_size)
+    net = simple_Conv(args.n_hidden, args.kernel_size, args.padding_size)
 elif args.model == 'Conv_max':
     net = simple_Conv_max(args.n_hidden, args.kernel_size)
 elif args.model == 'Conv_linear':
@@ -105,13 +106,10 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr,
 
 
 if args.epoch == 200:
-    if 'Conv' in args.model and args.kernel_size != 28:
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d_%d.pth'%(args.model, args.kernel_size, args.n_hidden))
-    else:
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d.pth'%(args.model, args.n_hidden))
+    if 'Conv' in args.model:
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_paddingsize/simple_%s_%d_%d_%d.pth'%(args.model, args.kernel_size, args.padding_size, args.n_hidden))
 else:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
-    # checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_gd/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_paddingsize/simple_%s_%d_%d.pth'%(args.model, args.n_hidden, args.epoch))
 
     
 net.load_state_dict(checkpoint['net'])

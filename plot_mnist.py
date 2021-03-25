@@ -25,11 +25,14 @@ L2_acc = {model_name:{'0.50':0., '1.00':0., '1.50':0., '2.00':0., '2.50':0.} for
 Linf_acc = {model_name:{'0.05':0., '0.10':0., '0.15':0., '0.20':0., '0.25':0.} for model_name in model_names}
 train_acc = {model_name:0. for model_name in model_names}
 test_acc = {model_name:0. for model_name in model_names}
+n_params = {model_name:0. for model_name in model_names}
 cnns = {'L_2': copy.deepcopy(L2_acc), 'L_inf': copy.deepcopy(Linf_acc)}
 
 for model_name in model_names:
 	with open(os.path.join(log_dir_mnist, 'FC_%d.txt'%(model_name))) as f:
 		for line in f:
+			if line.startswith('Number'):
+				n_params[model_name] = float(line.rstrip().split()[-1])
 			if line.startswith('Training'):
 				acc = re.search(r'Acc: (.*?)\%', line).group(1)
 				train_acc[model_name] = float(acc)
@@ -61,10 +64,10 @@ for attack in list(cnns.keys()):
 	plt.clf()
 	fig = plt.figure()
 	ax = plt.subplot(111)
-	plt.plot(model_names, [train_acc[model_name] for model_name in model_names], marker='o', label='train', color=colors2[0])
-	plt.plot(model_names, [test_acc[model_name] for model_name in model_names], marker='o', label='test', color=colors2[1])
+	plt.plot([n_params[model_name] for model_name in model_names], [train_acc[model_name] for model_name in model_names], marker='o', label='train', color=colors2[0])
+	plt.plot([n_params[model_name] for model_name in model_names], [test_acc[model_name] for model_name in model_names], marker='o', label='test', color=colors2[1])
 	for color1, color2, strength in zip(colors1, colors2[2:], epss):
-		plt.plot(model_names, [cnns[attack][model_name][strength] for model_name in model_names], marker='o', label=strength, color=color2)
+		plt.plot([n_params[model_name] for model_name in model_names], [cnns[attack][model_name][strength] for model_name in model_names], marker='o', label=strength, color=color2)
 	# plt.ylim(5, 92)
 	# plt.xlabel('epsilon')
 	# plt.ylabel('accuracy')
@@ -92,11 +95,14 @@ L2_acc = {model_name:{'0.50':0., '1.00':0., '1.50':0., '2.00':0., '2.50':0.} for
 Linf_acc = {model_name:{'0.05':0., '0.10':0., '0.15':0., '0.20':0., '0.25':0.} for model_name in model_names}
 train_acc = {model_name:0. for model_name in model_names}
 test_acc = {model_name:0. for model_name in model_names}
+n_params = {model_name:0. for model_name in model_names}
 cnns = {'L_2': copy.deepcopy(L2_acc), 'L_inf': copy.deepcopy(Linf_acc)}
 
 for model_name in model_names:
 	with open(os.path.join(log_dir_mnist, 'FC_%d.txt'%(model_name))) as f:
 		for line in f:
+			if line.startswith('Number'):
+				n_params[model_name] = float(line.rstrip().split()[-1])
 			if line.startswith('Training'):
 				acc = re.search(r'Loss: (.*?) \|', line).group(1)
 				train_acc[model_name] = float(acc)
