@@ -61,25 +61,25 @@ python test_mnist.py --model FC --n_hidden 790 > /vulcanscratch/songweig/logs/do
 
 
 
-python mnist.py --model FC --n_hidden 10
+python mnist.py --model FC --n_hidden 10 --verbose 2
 python test_mnist.py --model FC --n_hidden 10 > /vulcanscratch/songweig/logs/double_descent_4k/FC_10.txt
-python mnist.py --model FC --n_hidden 20
+python mnist.py --model FC --n_hidden 20 --verbose 2
 python test_mnist.py --model FC --n_hidden 20 > /vulcanscratch/songweig/logs/double_descent_4k/FC_20.txt
-python mnist.py --model FC --n_hidden 30
+python mnist.py --model FC --n_hidden 30 --verbose 2
 python test_mnist.py --model FC --n_hidden 30 > /vulcanscratch/songweig/logs/double_descent_4k/FC_30.txt
-python mnist.py --model FC --n_hidden 40
+python mnist.py --model FC --n_hidden 40 --verbose 2
 python test_mnist.py --model FC --n_hidden 40 > /vulcanscratch/songweig/logs/double_descent_4k/FC_40.txt
-python mnist.py --model FC --n_hidden 50
+python mnist.py --model FC --n_hidden 50 --verbose 2
 python test_mnist.py --model FC --n_hidden 50 > /vulcanscratch/songweig/logs/double_descent_4k/FC_50.txt
-python mnist.py --model FC --n_hidden 60
+python mnist.py --model FC --n_hidden 60 --verbose 2
 python test_mnist.py --model FC --n_hidden 60 > /vulcanscratch/songweig/logs/double_descent_4k/FC_60.txt
-python mnist.py --model FC --n_hidden 70
+python mnist.py --model FC --n_hidden 70 --verbose 2
 python test_mnist.py --model FC --n_hidden 70 > /vulcanscratch/songweig/logs/double_descent_4k/FC_70.txt
-python mnist.py --model FC --n_hidden 80
+python mnist.py --model FC --n_hidden 80 --verbose 2
 python test_mnist.py --model FC --n_hidden 80 > /vulcanscratch/songweig/logs/double_descent_4k/FC_80.txt
-python mnist.py --model FC --n_hidden 90
+python mnist.py --model FC --n_hidden 90 --verbose 2
 python test_mnist.py --model FC --n_hidden 90 > /vulcanscratch/songweig/logs/double_descent_4k/FC_90.txt
-python mnist.py --model FC --n_hidden 100
+python mnist.py --model FC --n_hidden 100 --verbose 2
 python test_mnist.py --model FC --n_hidden 100 > /vulcanscratch/songweig/logs/double_descent_4k/FC_100.txt
 
 
