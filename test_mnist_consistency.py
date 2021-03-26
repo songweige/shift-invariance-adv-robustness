@@ -26,6 +26,7 @@ parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
 parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
+parser.add_argument('--padding_size', default=-1, type=int, help='the size of circular padding')
 parser.add_argument('--epoch', default=200, type=int, help='which epoch to load')
 parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
@@ -75,7 +76,7 @@ if args.model == 'FC':
 elif args.model == 'FC_linear':
     net = simple_FC_linear(args.n_hidden)
 elif args.model == 'Conv':
-    net = simple_Conv(args.n_hidden, args.kernel_size)
+    net = simple_Conv(args.n_hidden, args.kernel_size, args.padding_size)
 elif args.model == 'Conv_max':
     net = simple_Conv_max(args.n_hidden, args.kernel_size)
 elif args.model == 'Conv_linear':
@@ -142,3 +143,34 @@ for batch_idx, (inputs, targets) in enumerate(testloader):
 
 
 print("Consistency on clean test examples: {:.2f}%".format(100.*consistency/total))
+
+for i in range(8):
+    args.padding_size = i*2
+    net = simple_Conv(1000, 28, args.padding_size)
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/mnist_paddingsize/simple_Conv_%d_%d_%d.pth'%(args.kernel_size, args.padding_size, args.n_hidden))
+    net.load_state_dict(checkpoint['net'])
+    best_acc = checkpoint['acc']
+    start_epoch = checkpoint['epoch']
+    msg = net.cuda().eval()
+    consistency = 0
+    total = 0
+    for batch_idx, (inputs, targets) in enumerate(testloader):
+        shift0 = np.random.randint(28,size=2)
+        inputs_shift_v0 = torch.zeros([100, 1, 28, 28])
+        inputs_shift_hv0 = torch.zeros([100, 1, 28, 28])
+        inputs_shift_v0[:, :, :, :shift0[0]] = inputs[:, :, :, (28-shift0[0]):].clone()
+        inputs_shift_v0[:, :, :, shift0[0]:] = inputs[:, :, :, :(28-shift0[0])].clone()
+        inputs_shift_hv0[:, :, :shift0[1], :] = inputs_shift_v0[:, :, (28-shift0[1]):, :]
+        inputs_shift_hv0[:, :, shift0[1]:, :] = inputs_shift_v0[:, :, :(28-shift0[1]), :]
+        predicted0 = net(inputs_shift_hv0.cuda()).argmax(1)
+        shift1 = np.random.randint(28,size=2)
+        inputs_shift_v1 = torch.zeros([100, 1, 28, 28])
+        inputs_shift_hv1 = torch.zeros([100, 1, 28, 28])
+        inputs_shift_v1[:, :, :, :shift1[0]] = inputs[:, :, :, (28-shift1[0]):].clone()
+        inputs_shift_v1[:, :, :, shift1[0]:] = inputs[:, :, :, :(28-shift1[0])].clone()
+        inputs_shift_hv1[:, :, :shift1[1], :] = inputs_shift_v1[:, :, (28-shift1[1]):, :]
+        inputs_shift_hv1[:, :, shift1[1]:, :] = inputs_shift_v1[:, :, :(28-shift1[1]), :]
+        predicted1 = net(inputs_shift_hv1.cuda()).argmax(1)
+        consistency += (predicted0==predicted1).sum().item()
+        total += targets.size(0)
+    print("Consistency on clean test examples: {:.2f}%".format(100.*consistency/total))
