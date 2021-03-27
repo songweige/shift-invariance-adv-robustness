@@ -134,10 +134,10 @@ for attack in list(cnns.keys()):
 	plt.clf()
 	fig = plt.figure()
 	ax = plt.subplot(111)
-	plt.plot(model_names, [train_acc[model_name] for model_name in model_names], marker='o', label='train', color=colors2[0])
-	plt.plot(model_names, [test_acc[model_name] for model_name in model_names], marker='o', label='test', color=colors2[1])
+	plt.plot([n_params[model_name] for model_name in model_names], [train_acc[model_name] for model_name in model_names], marker='o', label='train', color=colors2[0])
+	plt.plot([n_params[model_name] for model_name in model_names], [test_acc[model_name] for model_name in model_names], marker='o', label='test', color=colors2[1])
 	for color1, color2, strength in zip(colors1, colors2[2:], epss):
-		plt.plot(model_names, [cnns[attack][model_name][strength] for model_name in model_names], marker='o', label=strength, color=color2)
+		plt.plot([n_params[model_name] for model_name in model_names], [cnns[attack][model_name][strength] for model_name in model_names], marker='o', label=strength, color=color2)
 	# plt.ylim(5, 92)
 	# plt.xlabel('epsilon')
 	# plt.ylabel('accuracy')
