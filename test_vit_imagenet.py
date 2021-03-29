@@ -53,7 +53,7 @@ val_loader = torch.utils.data.DataLoader(
         transforms.ToTensor(),
         normalize,
     ])),
-    batch_size=16, shuffle=False,
+    batch_size=8, shuffle=False,
     num_workers=10, pin_memory=True)
 
 
@@ -137,36 +137,7 @@ if device == 'cuda':
     cudnn.benchmark = True
 
 
-classifier = PyTorchClassifier(
-    model=net,
-    loss=criterion,
-    input_shape=(1, 384, 384),
-    nb_classes=1000,
-)
-norm, epsilons = attack_params[0]
-epsilon = epsilons[1]
-
-# attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
-attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
-# adv_correct_FGM = 0
-adv_correct_PGD = 0
-total = 0
-for batch_idx, (inputs, targets) in enumerate(val_loader):
-    # begin_time = time()
-    inputs_adv_PGD = attack_PGD.generate(x=inputs)
-    # inputs_adv_FGM = attack_FGM.generate(x=inputs)
-    adv_predicted_PGD = classifier.predict(inputs_adv_PGD).argmax(1)
-    # adv_predicted_FGM = classifier.predict(inputs_adv_FGM).argmax(1)
-    adv_correct_PGD += (adv_predicted_PGD==targets.numpy()).sum().item()
-    # adv_correct_FGM += (adv_predicted_FGM==targets.numpy()).sum().item()
-    total += targets.size(0)
-    # print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
-    if total > 10000:
-        break
-
-print("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_PGD/total))
-
-for model_name in model_names:
+for model_name in model_names[2:3]:
     print(model_name)
     config = get_vit_config(model_name)
     config['image_size'] = 384
@@ -191,14 +162,14 @@ for model_name in model_names:
         net = net.cuda()
         cudnn.benchmark = True
     fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
-    # total = 0.
-    # correct = 0.
-    # for batch_idx, (inputs, targets) in enumerate(val_loader):
-    #     predicted = net(inputs.cuda()).argmax(1)
-    #     correct += (predicted.cpu().numpy()==targets.numpy()).sum().item()
-    #     total += targets.size(0)
-    # print("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
-    # fw.write("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
+    total = 0.
+    correct = 0.
+    for batch_idx, (inputs, targets) in enumerate(val_loader):
+        predicted = net(inputs.cuda()).argmax(1)
+        correct += (predicted.cpu().numpy()==targets.numpy()).sum().item()
+        total += targets.size(0)
+    print("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
+    fw.write("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
     classifier = PyTorchClassifier(
         model=net,
         loss=criterion,
@@ -221,11 +192,11 @@ for model_name in model_names:
                 adv_correct_PGD += (adv_predicted_PGD==targets.numpy()).sum().item()
                 # adv_correct_FGM += (adv_predicted_FGM==targets.numpy()).sum().item()
                 total += targets.size(0)
-                # print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
+                print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
                 if total > 10000:
                     break
             print("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_PGD/total))
-            # fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
+            fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
 
 ########################################################################################################################################################
 ### BiT
@@ -250,7 +221,7 @@ model_name = 'BiT_resnet_50x1'
 net = resnet_bit.resnetv2_50x1_bitm(pretrained=True)
 net = get_bit_model(model_name)
 
-for model_name in model_names:
+for model_name in model_names[1:2]:
     print(model_name)
     net = get_bit_model(model_name)
     fw = open(os.path.join(log_dir, '%s2.txt'%model_name), 'a')
