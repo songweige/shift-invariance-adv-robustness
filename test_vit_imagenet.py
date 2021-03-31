@@ -115,29 +115,29 @@ model_name = 'ViT_B_16'
 config = get_vit_config(model_name)
 config['image_size'] = 384
 config['num_classes'] = 1000
-net = vit.VisionTransformer(
-             image_size=(config['image_size'], config['image_size']),
-             patch_size=(config['patch_size'], config['patch_size']),
-             emb_dim=config['emb_dim'],
-             mlp_dim=config['mlp_dim'],
-             num_heads=config['num_heads'],
-             num_layers=config['num_layers'],
-             num_classes=config['num_classes'],
-             attn_dropout_rate=config['attn_dropout_rate'],
-             dropout_rate=config['dropout_rate'])
+# net = vit.VisionTransformer(
+#              image_size=(config['image_size'], config['image_size']),
+#              patch_size=(config['patch_size'], config['patch_size']),
+#              emb_dim=config['emb_dim'],
+#              mlp_dim=config['mlp_dim'],
+#              num_heads=config['num_heads'],
+#              num_layers=config['num_layers'],
+#              num_classes=config['num_classes'],
+#              attn_dropout_rate=config['attn_dropout_rate'],
+#              dropout_rate=config['dropout_rate'])
 
 
-ckpt_file = torch.load(os.path.join('/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/', '%s.pth'%model_name))
-net.load_state_dict(ckpt_file['state_dict'])
-net = net.to(device)
-net.eval()
+# ckpt_file = torch.load(os.path.join('/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/', '%s.pth'%model_name))
+# net.load_state_dict(ckpt_file['state_dict'])
+# net = net.to(device)
+# net.eval()
 if device == 'cuda':
     # net = torch.nn.DataParallel(net)
     net = net.cuda()
     cudnn.benchmark = True
 
 
-for model_name in model_names[2:3]:
+for model_name in model_names[1:2]:
     print(model_name)
     config = get_vit_config(model_name)
     config['image_size'] = 384
@@ -154,49 +154,49 @@ for model_name in model_names[2:3]:
                  dropout_rate=config['dropout_rate'])
     ckpt_file = torch.load(os.path.join('/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/', '%s.pth'%model_name))
     net.load_state_dict(ckpt_file['state_dict'])
-    fw = open(os.path.join(log_dir, '%s2.txt'%model_name), 'a')
     net = net.to(device)
     net.eval()
     if device == 'cuda':
         # net = torch.nn.DataParallel(net)
         net = net.cuda()
         cudnn.benchmark = True
-    fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
-    total = 0.
-    correct = 0.
-    for batch_idx, (inputs, targets) in enumerate(val_loader):
-        predicted = net(inputs.cuda()).argmax(1)
-        correct += (predicted.cpu().numpy()==targets.numpy()).sum().item()
-        total += targets.size(0)
-    print("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
-    fw.write("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
-    classifier = PyTorchClassifier(
-        model=net,
-        loss=criterion,
-        input_shape=(1, 384, 384),
-        nb_classes=1000,
-    )
-    for norm, epsilons in attack_params[1:]:
-        for epsilon in epsilons[1:]:
-            # attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
-            attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
-            # adv_correct_FGM = 0
-            adv_correct_PGD = 0
-            total = 0
-            for batch_idx, (inputs, targets) in enumerate(val_loader):
-                # begin_time = time()
-                inputs_adv_PGD = attack_PGD.generate(x=inputs)
-                # inputs_adv_FGM = attack_FGM.generate(x=inputs)
-                adv_predicted_PGD = classifier.predict(inputs_adv_PGD).argmax(1)
-                # adv_predicted_FGM = classifier.predict(inputs_adv_FGM).argmax(1)
-                adv_correct_PGD += (adv_predicted_PGD==targets.numpy()).sum().item()
-                # adv_correct_FGM += (adv_predicted_FGM==targets.numpy()).sum().item()
-                total += targets.size(0)
-                print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
-                if total > 10000:
-                    break
-            print("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_PGD/total))
-            fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
+    with open(os.path.join(log_dir, '%s2.txt'%model_name), 'a') as fw:
+        fw.write('Number of parameters: %d\n'%sum(p.numel() for p in net.parameters()))
+        total = 0.
+        correct = 0.
+        for batch_idx, (inputs, targets) in enumerate(val_loader):
+            predicted = net(inputs.cuda()).argmax(1)
+            correct += (predicted.cpu().numpy()==targets.numpy()).sum().item()
+            total += targets.size(0)
+        print("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
+        fw.write("Accuracy on clean test examples: {:.2f}%".format(100.*correct/total))
+        classifier = PyTorchClassifier(
+            model=net,
+            loss=criterion,
+            input_shape=(1, 384, 384),
+            nb_classes=1000,
+        )
+        for norm, epsilons in attack_params[:1]:
+            for epsilon in epsilons[:1]:
+                # attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
+                attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
+                # adv_correct_FGM = 0
+                adv_correct_PGD = 0
+                total = 0
+                for batch_idx, (inputs, targets) in enumerate(val_loader):
+                    # begin_time = time()
+                    inputs_adv_PGD = attack_PGD.generate(x=inputs)
+                    # inputs_adv_FGM = attack_FGM.generate(x=inputs)
+                    adv_predicted_PGD = classifier.predict(inputs_adv_PGD).argmax(1)
+                    # adv_predicted_FGM = classifier.predict(inputs_adv_FGM).argmax(1)
+                    adv_correct_PGD += (adv_predicted_PGD==targets.numpy()).sum().item()
+                    # adv_correct_FGM += (adv_predicted_FGM==targets.numpy()).sum().item()
+                    total += targets.size(0)
+                    # print('batch %d took %.4f seconds'%(batch_idx, time()-begin_time))
+                    if total > 10000:
+                        break
+                print("Accuracy on FGM test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct_PGD/total))
+                fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
 
 ########################################################################################################################################################
 ### BiT
@@ -221,7 +221,7 @@ model_name = 'BiT_resnet_50x1'
 net = resnet_bit.resnetv2_50x1_bitm(pretrained=True)
 net = get_bit_model(model_name)
 
-for model_name in model_names[1:2]:
+for model_name in model_names[5:6]:
     print(model_name)
     net = get_bit_model(model_name)
     fw = open(os.path.join(log_dir, '%s2.txt'%model_name), 'a')
@@ -246,7 +246,7 @@ for model_name in model_names[1:2]:
         input_shape=(1, 384, 384),
         nb_classes=1000,
     )
-    for norm, epsilons in attack_params[1:]:
+    for norm, epsilons in attack_params[:1]:
         for epsilon in epsilons:
             # attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
             attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
