@@ -17,12 +17,9 @@ from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
 parser.add_argument('--verbose', default=0, type=int, help='level of verbos')
-parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
-parser.add_argument('--resume', '-r', action='store_true',
-                    help='resume from checkpoint')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -45,7 +42,7 @@ trainset = torchvision.datasets.MNIST(
     root='/vulcanscratch/songweig/datasets/mnist', train=True, download=True, transform=transform_train)
 trainset = torch.utils.data.Subset(trainset, indices=np.arange(4000))
 trainloader = torch.utils.data.DataLoader(
-    trainset, batch_size=256, shuffle=True, num_workers=2)
+    trainset, batch_size=128, shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.MNIST(
     root='/vulcanscratch/songweig/datasets/mnist', train=False, download=True, transform=transform_test)
@@ -71,13 +68,16 @@ if device == 'cuda':
 if args.n_hidden <= 5:
     torch.nn.init.xavier_uniform_(net.features[1].weight, gain=1.0)
     torch.nn.init.xavier_uniform_(net.classifier.weight, gain=1.0)
-elif args.n_hidden > 50:
+elif args.n_hidden > 51:
     torch.nn.init.normal_(net.features[1].weight, mean=0.0, std=0.1)
     torch.nn.init.normal_(net.classifier.weight, mean=0.0, std=0.1)
 else:
     torch.nn.init.normal_(net.features[1].weight, mean=0.0, std=0.1)
     torch.nn.init.normal_(net.classifier.weight, mean=0.0, std=0.1)
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d.pth'%(args.model, args.n_hidden-5))
+    i = 1 # load the closest model
+    while not os.path.exists('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_FC_%d.pth'%(args.n_hidden-i)):
+        i += 1
+    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_FC_%d.pth'%(args.n_hidden-i))
     with torch.no_grad():
         net.features[1].weight[:args.n_hidden-5, :].copy_(checkpoint['net']['features.1.weight'])
         net.features[1].bias[:args.n_hidden-5].copy_(checkpoint['net']['features.1.bias'])
@@ -114,12 +114,13 @@ def train(epoch, net):
         total += targets.size(0)
         correct += predicted.eq(targets.argmax(1)).sum().item()
         # correct += predicted.eq(targets).sum().item()
-    if args.verbose > 1:
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                 % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        if args.verbose > 1:
+            progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    return 1.*correct/total
 
 
-def test(epoch, net, model_name):
+def test(epoch, net, model_name, save_checkpoint=False):
     global best_acc
     net.eval()
     test_loss = 0
@@ -141,7 +142,7 @@ def test(epoch, net, model_name):
                              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
-    if epoch == start_epoch+5999:
+    if save_checkpoint:
         print('Saving..')
         state = {
             'net': net.state_dict(),
@@ -155,7 +156,11 @@ def test(epoch, net, model_name):
 
 
 for epoch in range(start_epoch, start_epoch+6000):
-    if (epoch+1) % 500 == 0 or epoch == start_epoch+5999:
-        test(epoch, net, 'simple_%s_%d'%(args.model, args.n_hidden))
-        optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] * 0.9
-    train(epoch, net)
+    if (epoch+1) % 500 == 0:
+        # test(epoch, net, 'simple_%s_%d'%(args.model, args.n_hidden))
+        if args.n_hidden <= 50:
+            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] * 0.9
+    acc = train(epoch, net)
+    if args.n_hidden <= 50 and acc == 1 or epoch == start_epoch+5999:
+        test(epoch, net, 'simple_FC_%d'%(args.n_hidden), save_checkpoint=True)
+        break

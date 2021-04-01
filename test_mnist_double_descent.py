@@ -28,7 +28,6 @@ parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden
 parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
 parser.add_argument('--padding_size', default=0, type=int, help='the size of circular padding')
 parser.add_argument('--epoch', default=200, type=int, help='which epoch to load')
-parser.add_argument('--model', default='VGG16', type=str, help='name of the model')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
 args = parser.parse_args()
@@ -72,31 +71,7 @@ def l2_norm(x: torch.Tensor) -> torch.Tensor:
 resnet_dict = {'18':ResNet_MNIST_18, '34':ResNet_MNIST_34, '50':ResNet_MNIST_50, '101':ResNet_MNIST_101, '152':ResNet_MNIST_152}
 
 # Model
-if args.model == 'FC':
-    net = simple_FC(args.n_hidden)
-elif args.model == 'FC_linear':
-    net = simple_FC_linear(args.n_hidden)
-elif args.model == 'Conv':
-    net = simple_Conv(args.n_hidden, args.kernel_size, args.padding_size)
-elif args.model == 'Conv_max':
-    net = simple_Conv_max(args.n_hidden, args.kernel_size)
-elif args.model == 'Conv_linear':
-    net = simple_Conv_linear(args.n_hidden, args.kernel_size)
-elif args.model == 'Conv_linear_max':
-    net = simple_Conv_linear_max(args.n_hidden, args.kernel_size)
-elif args.model == 'Conv_linear_nopooling':
-    net = simple_Conv_linear_nopooling(args.n_hidden, args.kernel_size)
-elif args.model == 'Conv_linear_pooling':
-    net = simple_Conv_linear_pooling(args.n_hidden, args.kernel_size)
-elif args.model.startswith('resnet'):
-    n_layer = args.model.split('_')[-1]
-    if 'no_pooling' in args.model:
-        net = resnet_dict[n_layer](pooling=False)
-    elif 'max_pooling' in args.model:
-        net = resnet_dict[n_layer](pooling=True, max_pooling=True)
-    else:
-        net = resnet_dict[n_layer](pooling=True, max_pooling=False)
-
+net = simple_FC(args.n_hidden)
 
 print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
 net = net.cuda()
@@ -108,7 +83,7 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.95)
                       # momentum=0.9, weight_decay=5e-4)
 
 
-checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_%s_%d.pth'%(args.model, args.n_hidden))
+checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_FC_%d.pth'%(args.n_hidden))
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']
@@ -159,7 +134,7 @@ classifier = PyTorchClassifier(
 )
 print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
-attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.05, 0.1, 0.15, 0.2, 0.25]]]
+attack_params = [[2, [0.1, 0.2, 0.4, 0.8, 1.6]], [np.inf, [1/255., 2/255., 4/255., 8/255., 16/255.]]]
 for norm, epsilons in attack_params:
     for epsilon in epsilons:
         attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
