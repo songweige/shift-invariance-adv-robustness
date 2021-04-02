@@ -83,7 +83,7 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.95)
                       # momentum=0.9, weight_decay=5e-4)
 
 
-checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_4k/simple_FC_%d.pth'%(args.n_hidden))
+checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k/simple_FC_%d.pth'%(args.n_hidden))
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']
@@ -142,7 +142,7 @@ for norm, epsilons in attack_params:
         adv_correct = 0
         adv_loss = 0
         total = 0
-        for batch_idx, (inputs, targets) in enumerate(testloader):
+        for batch_idx, (inputs, targets) in enumerate(trainloader):
             inputs_adv = attack.generate(x=inputs)
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = net(inputs)
