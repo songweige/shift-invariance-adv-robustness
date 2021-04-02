@@ -16,13 +16,14 @@ colors2 = CAND_COLORS[1::2]
 
 log_dir_mnist = '/vulcanscratch/songweig/logs/double_descent'
 log_dir_mnist = '/vulcanscratch/songweig/logs/double_descent_4k'
+log_dir_mnist = 'logs'
 model_names = sorted([int(fn.split('_')[1].split('.')[0]) for fn in os.listdir(log_dir_mnist)])[:-3]
 
 # attack_params = {'L_2': [32/256., 64./256., 128./256, 256/256, 1.5], 'L_inf': [1/256., 2/256., 4/256., 8/256., 16/256.]}
 attack_params = {'L_2': ['16/255', '32/255', '64/255', '128/255', '192/255'], 'L_inf': ['0.5/255', '1/255', '2/255', '4/255', '8/255']}
 attack_params = {'L_2': ['0.25', '0.5', '0.75', '0.1'], 'L_inf': ['1/255', '2/255', '4/255', '8/255']}
-L2_acc = {model_name:{'0.50':0., '1.00':0., '1.50':0., '2.00':0., '2.50':0.} for model_name in model_names}
-Linf_acc = {model_name:{'0.05':0., '0.10':0., '0.15':0., '0.20':0., '0.25':0.} for model_name in model_names}
+L2_acc = {model_name:{'0.10':0., '0.20':0., '0.40':0., '0.80':0., '1.60':0.} for model_name in model_names}
+Linf_acc = {model_name:{'0.00':0., '0.01':0., '0.02':0., '0.03':0., '0.06':0.} for model_name in model_names}
 train_acc = {model_name:0. for model_name in model_names}
 test_acc = {model_name:0. for model_name in model_names}
 n_params = {model_name:0. for model_name in model_names}
@@ -70,14 +71,15 @@ for attack in list(cnns.keys()):
 		plt.plot([n_params[model_name] for model_name in model_names], [cnns[attack][model_name][strength] for model_name in model_names], marker='o', label=strength, color=color2)
 	# plt.ylim(5, 92)
 	# plt.xlabel('epsilon')
-	# plt.ylabel('accuracy')
+	plt.ylabel('accuracy')
 	box = ax.get_position()
 	plt.tight_layout()
 	ax.set_position([box.x0, box.y0,
                  box.width, box.height * 0.9])
 	plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25), fancybox=True, ncol=4)
 	# plt.savefig('/vulcanscratch/songweig/plots/double_descent/%s_MNIST_full.png'%(attack))
-	plt.savefig('/vulcanscratch/songweig/plots/double_descent/%s_MNIST_4k.png'%(attack))
+	# plt.savefig('/vulcanscratch/songweig/plots/double_descent/%s_MNIST_4k.png'%(attack))
+	plt.savefig('double_descent/%s_MNIST_4k.png'%(attack))
 
 
 ########################################################################################################################################################
@@ -86,13 +88,14 @@ for attack in list(cnns.keys()):
 
 log_dir_mnist = '/vulcanscratch/songweig/logs/double_descent'
 log_dir_mnist = '/vulcanscratch/songweig/logs/double_descent_4k'
+log_dir_mnist = 'logs'
 model_names = sorted([int(fn.split('_')[1].split('.')[0]) for fn in os.listdir(log_dir_mnist)])[:-3]
 
 # attack_params = {'L_2': [32/256., 64./256., 128./256, 256/256, 1.5], 'L_inf': [1/256., 2/256., 4/256., 8/256., 16/256.]}
 attack_params = {'L_2': ['16/255', '32/255', '64/255', '128/255', '192/255'], 'L_inf': ['0.5/255', '1/255', '2/255', '4/255', '8/255']}
 attack_params = {'L_2': ['0.25', '0.5', '0.75', '0.1'], 'L_inf': ['1/255', '2/255', '4/255', '8/255']}
-L2_acc = {model_name:{'0.50':0., '1.00':0., '1.50':0., '2.00':0., '2.50':0.} for model_name in model_names}
-Linf_acc = {model_name:{'0.05':0., '0.10':0., '0.15':0., '0.20':0., '0.25':0.} for model_name in model_names}
+L2_acc = {model_name:{'0.10':0., '0.20':0., '0.40':0., '0.80':0., '1.60':0.} for model_name in model_names}
+Linf_acc = {model_name:{'0.00':0., '0.01':0., '0.02':0., '0.03':0., '0.06':0.} for model_name in model_names}
 train_acc = {model_name:0. for model_name in model_names}
 test_acc = {model_name:0. for model_name in model_names}
 n_params = {model_name:0. for model_name in model_names}
@@ -147,5 +150,25 @@ for attack in list(cnns.keys()):
                  box.width, box.height * 0.9])
 	plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25), fancybox=True, ncol=4)
 	# plt.savefig('/vulcanscratch/songweig/plots/double_descent/%s_MNIST_full_loss.png'%(attack))
-	plt.savefig('/vulcanscratch/songweig/plots/double_descent/%s_MNIST_4k_loss.png'%(attack))
+	plt.savefig('double_descent/%s_MNIST_4k_loss.png'%(attack))
 
+
+
+epss = cnns[attack][model_names[0]]
+n_eps = len(epss)
+n_model = len(model_names)
+plt.clf()
+fig = plt.figure()
+ax = plt.subplot(111)
+plt.plot([n_params[model_name] for model_name in model_names], [train_acc[model_name] for model_name in model_names], marker='o', label='train', color=colors2[0])
+plt.plot([n_params[model_name] for model_name in model_names], [test_acc[model_name] for model_name in model_names], marker='o', label='test', color=colors2[1])
+# plt.ylim(5, 92)
+# plt.xlabel('epsilon')
+plt.ylabel('loss')
+box = ax.get_position()
+plt.tight_layout()
+ax.set_position([box.x0, box.y0,
+             box.width, box.height * 0.9])
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25), fancybox=True, ncol=4)
+# plt.savefig('/vulcanscratch/songweig/plots/double_descent/%s_MNIST_full_loss.png'%(attack))
+plt.savefig('double_descent/MNIST_4k_loss.png')
