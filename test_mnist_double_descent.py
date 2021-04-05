@@ -83,7 +83,7 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.95)
                       # momentum=0.9, weight_decay=5e-4)
 
 
-checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k/simple_FC_%d.pth'%(args.n_hidden))
+checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/simple_FC_%d.pth'%(args.n_hidden))
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']

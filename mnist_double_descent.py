@@ -69,18 +69,18 @@ if device == 'cuda':
 if args.n_hidden <= 5:
     torch.nn.init.xavier_uniform_(net.features[1].weight, gain=1.0)
     torch.nn.init.xavier_uniform_(net.classifier.weight, gain=1.0)
-elif args.n_hidden > 56:
-    torch.nn.init.normal_(net.features[1].weight, mean=0.0, std=0.1)
-    torch.nn.init.normal_(net.classifier.weight, mean=0.0, std=0.1)
+# elif args.n_hidden > 56:
+#     torch.nn.init.normal_(net.features[1].weight, mean=0.0, std=0.1)
+#     torch.nn.init.normal_(net.classifier.weight, mean=0.0, std=0.1)
 else:
     torch.nn.init.normal_(net.features[1].weight, mean=0.0, std=0.1)
     torch.nn.init.normal_(net.classifier.weight, mean=0.0, std=0.1)
     if args.reuse:
         print('use previous checkpoints to initialize the weights')
         i = 1 # load the closest model
-        while not os.path.exists('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k/simple_FC_%d.pth'%(args.n_hidden-i)):
+        while not os.path.exists('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/simple_FC_%d.pth'%(args.n_hidden-i)):
             i += 1
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k/simple_FC_%d.pth'%(args.n_hidden-i))
+        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/simple_FC_%d.pth'%(args.n_hidden-i))
         with torch.no_grad():
             net.features[1].weight[:args.n_hidden-1, :].copy_(checkpoint['net']['features.1.weight'])
             net.features[1].bias[:args.n_hidden-1].copy_(checkpoint['net']['features.1.bias'])
@@ -152,9 +152,9 @@ def test(epoch, net, model_name, save_checkpoint=False):
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k'):
-            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k/%s.pth'%model_name)
+        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k'):
+            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k')
+        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/%s.pth'%model_name)
         best_acc = acc
 
 
