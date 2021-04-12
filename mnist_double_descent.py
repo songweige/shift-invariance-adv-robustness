@@ -79,12 +79,13 @@ else:
         print('use previous checkpoints to initialize the weights')
         i = 1 # load the closest model
         while not os.path.exists('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/simple_FC_%d.pth'%(args.n_hidden-i)):
+            print('loading from simple_FC_%d.pth'%(args.n_hidden-i))
             i += 1
         checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/simple_FC_%d.pth'%(args.n_hidden-i))
         with torch.no_grad():
-            net.features[1].weight[:args.n_hidden-1, :].copy_(checkpoint['net']['features.1.weight'])
-            net.features[1].bias[:args.n_hidden-1].copy_(checkpoint['net']['features.1.bias'])
-            net.classifier.weight[:, :args.n_hidden-1].copy_(checkpoint['net']['classifier.weight'])
+            net.features[1].weight[:args.n_hidden-i, :].copy_(checkpoint['net']['features.1.weight'])
+            net.features[1].bias[:args.n_hidden-i].copy_(checkpoint['net']['features.1.bias'])
+            net.classifier.weight[:, :args.n_hidden-i].copy_(checkpoint['net']['classifier.weight'])
             net.classifier.bias.copy_(checkpoint['net']['classifier.bias'])
 
 
