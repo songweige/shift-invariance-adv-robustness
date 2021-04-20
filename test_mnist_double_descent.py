@@ -24,7 +24,7 @@ from art.estimators.classification import PyTorchClassifier
 
 parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
-parser.add_argument('--n_hidden', default=1000, type=int, help='number of hidden units')
+parser.add_argument('--n_hidden', default=2000, type=int, help='number of hidden units')
 parser.add_argument('--kernel_size', default=28, type=int, help='the size of convolutional kernel')
 parser.add_argument('--padding_size', default=0, type=int, help='the size of circular padding')
 parser.add_argument('--epoch', default=200, type=int, help='which epoch to load')
@@ -71,6 +71,7 @@ def l2_norm(x: torch.Tensor) -> torch.Tensor:
 resnet_dict = {'18':ResNet_MNIST_18, '34':ResNet_MNIST_34, '50':ResNet_MNIST_50, '101':ResNet_MNIST_101, '152':ResNet_MNIST_152}
 
 # Model
+args.n_hidden = 50
 net = simple_FC(args.n_hidden)
 
 print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
@@ -83,7 +84,7 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.95)
                       # momentum=0.9, weight_decay=5e-4)
 
 
-checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_reuse_4k/simple_FC_%d.pth'%(args.n_hidden))
+checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/double_descent_noreuse_4k/simple_FC_%d.pth'%(args.n_hidden))
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']
@@ -157,3 +158,52 @@ for norm, epsilons in attack_params:
             adv_correct += (adv_predicted==targets.cpu().data.numpy())[correct_idx.cpu().data.numpy()].sum().item()
             total += correct_idx.sum().item()
         print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%. Loss: {:.2f}".format(norm, epsilon, 100.*adv_correct/total, adv_loss/(batch_idx+1)))
+
+
+criterion = nn.CrossEntropyLoss()
+H_util = Hessian(net, nn.CrossEntropyLoss())
+
+print(x_boundary, eigenvalues, eigenvectors)
+
+adv_eigenvalues = []
+rand_eigenvalues = []
+count = 0
+step_size = 0.1
+for batch_idx, (inputs, targets) in enumerate(trainloader):
+    for inp, tar in zip(inputs, targets):
+        inp, tar = inp.to(device).unsqueeze(0), tar.to(device).unsqueeze(0)
+        msg  = inp.requires_grad_()
+        outp = net(inp)
+        _, predicted = outp.max(1)
+        loss = criterion(outp, tar.cuda())
+        inputs_grad = torch.autograd.grad(loss, inp, create_graph=True)[0]
+        inputs_grad_v = torch.nn.functional.normalize(inputs_grad)
+        random_v = torch.nn.functional.normalize(torch.randn_like(inp))
+        # in the direction of gradient
+        new_predicted = predicted.clone()
+        new_inp = inp.clone()
+        step = 0
+        while(new_predicted[0]==predicted[0] or step<=100):
+            new_inp += step_size*inputs_grad_v
+            new_outp = net(new_inp)
+            _, new_predicted = new_outp.max(1)
+            step += 1
+        if step <= 100:
+            eigenvalues, eigenvectors, _ = H_util.eigenvalues([new_inp, tar], top_n=2)
+            adv_eigenvalues.append(eigenvalues)
+        # in the random direction
+        new_predicted = predicted.clone()
+        new_inp = inp.clone()
+        step = 0
+        while(new_predicted[0]==predicted[0] or step<=100):
+            new_inp += step_size*random_v
+            new_outp = net(new_inp)
+            _, new_predicted = new_outp.max(1)
+        if step <= 100:
+            eigenvalues, eigenvectors, _ = H_util.eigenvalues([new_inp, tar], top_n=2)
+            rand_eigenvalues.append(eigenvalues)
+        count += 1
+        print(count)
+    if count > 1000:
+        break
+
