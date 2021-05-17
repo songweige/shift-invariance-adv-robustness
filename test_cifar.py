@@ -164,9 +164,11 @@ if args.n_data < 50000:
         for epsilon in epsilons:
             # attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
             if norm == 2:
-                attack = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
+                attack = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100,
+                                                         eps_step=epsilon/5, eps=epsilon, norm=norm, verbose=False)
             else:
-                attack = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
+                attack = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100,
+                                                         eps_step=epsilon/5, eps=epsilon, norm=norm, verbose=False)
             adv_correct = 0
             total = 0
             for batch_idx, (inputs, targets) in enumerate(trainloader):
