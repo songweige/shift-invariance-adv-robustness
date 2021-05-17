@@ -28,6 +28,7 @@ parser.add_argument('--model', default='VGG16', type=str, help='name of the mode
 parser.add_argument('--n_data', default=50000, type=int, help='level of verbos')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
+parser.add_argument('--model_path', type=str, help='path for the model')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -38,7 +39,7 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 print('==> Preparing data..')
 transform_test = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 if args.n_data<50000:
@@ -87,7 +88,8 @@ if args.n_data < 50000:
     checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s_%d.pth'%(args.model, args.n_data))
     print("Accuracy on clean train examples: {:.2f}%".format(checkpoint['train_acc']))
 else:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
+    checkpoint = torch.load(os.path.join(args.model_path, args.model+'.pth'))
+    # checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
     
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
@@ -98,12 +100,16 @@ classifier = PyTorchClassifier(
     loss=criterion,
     input_shape=(1, 32, 32),
     nb_classes=10,
-)
+    preprocessing=(np.array((0.4914, 0.4822, 0.4465)),
+                   np.array((0.2023, 0.1994, 0.2010)))
+    )
+
 print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
 # attack_params = [[2, [32/256., 64./256., 128./256, 256/256, 1.5]], [np.inf, [1/256., 2/256., 4/256., 8/256., 16/256.]]]
-attack_params = [[2, [0.5, 1.0, 1.5, 2.0]], [np.inf, [2/256., 4/256., 8/256., 16/256.]]]
+# attack_params = [[2, [0.5, 1.0, 1.5, 2.0]], [np.inf, [2/256., 4/256., 8/256., 16/256.]]]
 # attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
+attack_params = [[2, [0.1, 0.2, 0.3, 0.4]], [np.inf, [0.5/255., 1./255., 2./255., 4./255.]]]
 # import ipdb;ipdb.set_trace()
 
 for norm, epsilons in attack_params:
