@@ -41,7 +41,7 @@ best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # setup logging
-os.makedirs(args.save_dir, exist_ok=True)
+# os.makedirs(args.save_dir, exist_ok=True)
 logfile = args.log_file
 logging.basicConfig(
     format='[%(asctime)s] - %(message)s',
