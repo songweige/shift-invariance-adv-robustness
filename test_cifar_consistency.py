@@ -28,6 +28,7 @@ parser.add_argument('--model', default='VGG16', type=str, help='name of the mode
 parser.add_argument('--n_data', default=50000, type=int, help='level of verbos')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
+parser.add_argument('--model_path', type=str, help='path for the model')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -86,7 +87,7 @@ if args.n_data < 50000:
     checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s_%d.pth'%(args.model, args.n_data))
     print("Accuracy on clean train examples: {:.2f}%".format(checkpoint['train_acc']))
 else:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
+    checkpoint = torch.load(os.path.join(args.model_path, args.model+'.pth'))
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
 start_epoch = checkpoint['epoch']

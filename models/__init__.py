@@ -5,6 +5,7 @@ from .wide_resnet import *
 from .simple import *
 from .alex_net import *
 from .GoogleNet import *
+from .sparse_mlp import *
 
 resnet_dict = {'18':ResNet18, '34':ResNet34, '50':ResNet50, '101':ResNet101, '152':ResNet152}
 
@@ -49,3 +50,5 @@ def get_net(model):
             return Wide_ResNet_MaxPool(depth=n_layer, widen_factor=widen_factor)
         else:
             return Wide_ResNet(depth=n_layer, widen_factor=widen_factor)
+    elif model.startswith('sparse'):
+        return SmallFCN(150)
