@@ -47,7 +47,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 log_dir = args.log_dir
 # os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
 attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
-attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
+# attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 
 criterion = nn.CrossEntropyLoss()
 val_loader = torch.utils.data.DataLoader(
