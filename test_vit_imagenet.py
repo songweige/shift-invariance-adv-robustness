@@ -28,6 +28,10 @@ parser.add_argument('--model', default='VGG16', type=str, help='name of the mode
 parser.add_argument('--n_data', default=50000, type=int, help='level of verbos')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
+parser.add_argument('--log_dir', help='name and directory for the log file',
+                    default='/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm')
+parser.add_argument('--model_path', help='location of the model checkpoint',
+                    default='/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -35,14 +39,13 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # Data
 print('==> Preparing data..')
 # traindir = os.path.join('/fs/vulcan-datasets/imagenet/', 'train')
-traindir =  '/vulcanscratch/songweig/datasets/imagenet/train_subset'
+# traindir =  '/vulcanscratch/songweig/datasets/imagenet/train_subset'
 valdir = os.path.join('/fs/vulcan-datasets/imagenet/', 'val')
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
-
-log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm'
-os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
+log_dir = args.log_dir
+# os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
 attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
 attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 
@@ -51,11 +54,10 @@ val_loader = torch.utils.data.DataLoader(
     torchvision.datasets.ImageFolder(valdir, transforms.Compose([
         transforms.Resize([384, 384]),
         transforms.ToTensor(),
-        normalize,
+        # normalize,
     ])),
     batch_size=8, shuffle=False,
     num_workers=10, pin_memory=True)
-
 
 
 ########################################################################################################################################################
@@ -131,10 +133,10 @@ config['num_classes'] = 1000
 # net.load_state_dict(ckpt_file['state_dict'])
 # net = net.to(device)
 # net.eval()
-if device == 'cuda':
-    # net = torch.nn.DataParallel(net)
-    net = net.cuda()
-    cudnn.benchmark = True
+# if device == 'cuda':
+#     # net = torch.nn.DataParallel(net)
+#     net = net.cuda()
+#     cudnn.benchmark = True
 
 
 for model_name in model_names[1:2]:
@@ -152,7 +154,7 @@ for model_name in model_names[1:2]:
                  num_classes=config['num_classes'],
                  attn_dropout_rate=config['attn_dropout_rate'],
                  dropout_rate=config['dropout_rate'])
-    ckpt_file = torch.load(os.path.join('/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/', '%s.pth'%model_name))
+    ckpt_file = torch.load(os.path.join(args.model_path, '%s.pth'%model_name))
     net.load_state_dict(ckpt_file['state_dict'])
     net = net.to(device)
     net.eval()
@@ -173,8 +175,10 @@ for model_name in model_names[1:2]:
         classifier = PyTorchClassifier(
             model=net,
             loss=criterion,
-            input_shape=(1, 384, 384),
+            input_shape=(3, 384, 384),
             nb_classes=1000,
+            preprocessing=(np.array([0.485, 0.456, 0.406]),
+                           np.array([0.229, 0.224, 0.225]))
         )
         for norm, epsilons in attack_params[:1]:
             for epsilon in epsilons[:1]:
@@ -243,8 +247,10 @@ for model_name in model_names[5:6]:
     classifier = PyTorchClassifier(
         model=net,
         loss=criterion,
-        input_shape=(1, 384, 384),
+        input_shape=(3, 384, 384),
         nb_classes=1000,
+        preprocessing=(np.array([0.485, 0.456, 0.406]),
+                       np.array([0.229, 0.224, 0.225]))
     )
     for norm, epsilons in attack_params[:1]:
         for epsilon in epsilons:
