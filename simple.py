@@ -1,4 +1,3 @@
-'''Train Simple with PyTorch.'''
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,16 +9,13 @@ import torchvision.transforms as transforms
 
 import os
 import argparse
+import numpy as np
 
-from datasets import *
-from models.simple import *
+import matplotlib
+import matplotlib.pyplot as plt
+
 from utils import progress_bar
-
 from DDN import DDN
-
-from art.attacks.evasion import FastGradientMethod
-from art.attacks.evasion import ProjectedGradientDescentPyTorch
-from art.estimators.classification import PyTorchClassifier
 
 
 def create_dataset_dots(k=100):
@@ -32,25 +28,6 @@ def create_dataset_dots(k=100):
     return Xs, ys
 
 
-class simple_FC_2D(nn.Module):
-    def __init__(self, n_input, n_hidden):
-        super(simple_FC_2D, self).__init__()
-        self.features = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(n_input, n_hidden),
-            nn.ReLU()
-        )
-        self.classifier = nn.Linear(n_hidden, 2)
-        # self.features[1].bias.data.zero_()
-        # self.features[1].weight.data.zero_()
-        # self.classifier.bias.data.zero_()
-        # self.classifier.weight.data.zero_()
-    def forward(self, x):
-        out = self.features(x)
-        out = self.classifier(out)
-        return out
-
-
 class simple_Conv_2D(nn.Module):
     def __init__(self, n_hidden, kernel_size=28):
         super(simple_Conv_2D, self).__init__()
@@ -61,10 +38,6 @@ class simple_Conv_2D(nn.Module):
             nn.AdaptiveAvgPool2d(1)
         )
         self.classifier = nn.Linear(n_hidden, 2)
-        # self.features[0].bias.data.zero_()
-        # self.features[0].weight.data.zero_()
-        # self.classifier.bias.data.zero_()
-        # self.classifier.weight.data.zero_()
     def forward(self, x):
         if len(x.size()) == 3:
             x = x.unsqueeze(1)
@@ -73,6 +46,20 @@ class simple_Conv_2D(nn.Module):
         out = self.classifier(out)
         return out
 
+
+class simple_FC_2D(nn.Module):
+    def __init__(self, n_input, n_hidden):
+        super(simple_FC_2D, self).__init__()
+        self.features = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(n_input, n_hidden),
+            nn.ReLU()
+        )
+        self.classifier = nn.Linear(n_hidden, 2)
+    def forward(self, x):
+        out = self.features(x)
+        out = self.classifier(out)
+        return out
 
 # Training
 def train(epoch, net, batch):
@@ -98,7 +85,7 @@ def train(epoch, net, batch):
     return train_loss/(batch_idx+1)
 
 
-def test(epoch, net, model_name, batch, total_epoch):
+def test(epoch, net, model_name, batch):
     global best_acc
     inputs, targets = batch
     batch_idx = 0
@@ -118,16 +105,16 @@ def test(epoch, net, model_name, batch, total_epoch):
                      % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
     # Save checkpoint.
     acc = 100.*correct/total
-    if epoch == start_epoch+(total_epoch-1):
+    if epoch == start_epoch+199:
         print('Saving..')
         state = {
             'net': net.state_dict(),
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('/vulcanscratch/songweig/ckpts/adv_pool/simple'):
-            os.mkdir('/vulcanscratch/songweig/ckpts/adv_pool/simple')
-        torch.save(state, '/vulcanscratch/songweig/ckpts/adv_pool/simple/%s.pth'%model_name)
+        if not os.path.isdir('./ckpt'):
+            os.mkdir('./ckpt')
+        torch.save(state, './ckpt/%s.pth'%model_name)
         best_acc = acc
 
 
@@ -142,121 +129,70 @@ def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-best_acc = 0  # best test accuracy
-model = 'Conv'
-total_epoch = 2000
-param_reuse = True
 
-dists = []
-losses = []
-for i in range(15):
+dists = {'FC':[], 'Conv':[]}
+losses = {'FC':[], 'Conv':[]}
+for model in ['FC', 'Conv']:
+    best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-    k = i*2 + 1
-    # batch = create_dataset_sin_cos(k)
-    batch = create_dataset_dots(k)
-    n_hidden = 100
-    kernel_size = k
-    # Model
-    if model == 'FC':
-        net = simple_FC_2D(k*k, n_hidden)
-    elif model == 'Conv':
-        net = simple_Conv_2D(n_hidden, kernel_size)
-    print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
-    if param_reuse and k > 1:
-        checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/simple/simple_%s_%d.pth'%(model, k-2))
-        state_dict = checkpoint['net']
-        net.features[0].weight[:, :, 1:-1, 1:-1].data.copy_(state_dict['features.0.weight'].data)
-        net.features[0].bias.data.copy_(state_dict['features.0.bias'].data)
-        net.classifier.weight.data.copy_(state_dict['classifier.weight'].data)
-        net.classifier.bias.data.copy_(state_dict['classifier.bias'].data)
-    net = net.cuda()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=1)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
-    torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
-    for epoch in range(start_epoch, start_epoch+total_epoch):
-        loss_epoch = train(epoch, net, torch_batch)
-        test(epoch, net, 'simple_%s_%d'%(model, k), torch_batch, total_epoch)
-        if epoch == 999:
-        	optimizer.param_groups[0]['lr'] = 0.5
-        if epoch == 1999:
-        	optimizer.param_groups[0]['lr'] = 0.1
-        if epoch == 2999:
-        	optimizer.param_groups[0]['lr'] = 0.01
-        if epoch > 3000 and (epoch+1) % 1000 == 0:
-            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 10
-        # scheduler.step()
-        if param_reuse and k > 1 and (epoch+1) % 1000 == 0:
-            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 10
-    inputs, targets = torch_batch
-    n_steps = [1000]
-    for n_step in n_steps:
-        attacker = DDN(steps=n_step, device=torch.device('cuda'))
-        adv_norm = 0.
-        adv_correct = 0
-        total = 0
-        inputs, targets = inputs.to(device), targets.to(device)
-        adv = attacker.attack(net, inputs.to(device), labels=targets.to(device), targeted=False)
-        adv_outputs = net(adv)
-        _, adv_predicted = adv_outputs.max(1)
-        total += targets.size(0)
-        adv_correct += adv_predicted.eq(targets).sum().item()
-        adv_norm += l2_norm(adv - inputs.to(device)).sum().item()
-        print('DDN (n-step = {:.0f}) done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
-            n_step,
-            100.*adv_correct/total,
-            adv_norm/total
-        ))
-    dists.append(adv_norm/total)
-    losses.append(loss_epoch)
+    for i in range(15):
+        k = i*2 + 1
+        # batch = create_dataset_sin_cos(k)
+        batch = create_dataset_dots(k)
+        n_hidden = 100
+        kernel_size = k
+        # Model
+        if model == 'FC':
+            net = simple_FC_2D(k*k, n_hidden)
+        elif model == 'Conv':
+            net = simple_Conv_2D(n_hidden, kernel_size)
+        print('Number of parameters: %d'%sum(p.numel() for p in net.parameters()))
+        net = net.cuda()
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(net.parameters(), lr=1)
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+        torch_batch = [torch.FloatTensor(batch[0]), torch.LongTensor(batch[1])]
+        for epoch in range(start_epoch, start_epoch+3000):
+            loss_epoch = train(epoch, net, torch_batch)
+            test(epoch, net, 'simple_%s_%d_%d'%(model, n_hidden, k), torch_batch)
+            if epoch == 999:
+            	optimizer.param_groups[0]['lr'] = 0.5
+            if epoch == 1999:
+            	optimizer.param_groups[0]['lr'] = 0.1
+            if epoch > 2999 and epoch % 1000 == 0:
+                optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 10
+            # scheduler.step()
+        inputs, targets = torch_batch
+        n_steps = [1000]
+        for n_step in n_steps:
+            attacker = DDN(steps=n_step, device=torch.device('cuda'))
+            adv_norm = 0.
+            adv_correct = 0
+            total = 0
+            inputs, targets = inputs.to(device), targets.to(device)
+            adv = attacker.attack(net, inputs.to(device), labels=targets.to(device), targeted=False)
+            adv_outputs = net(adv)
+            _, adv_predicted = adv_outputs.max(1)
+            total += targets.size(0)
+            adv_correct += adv_predicted.eq(targets).sum().item()
+            adv_norm += l2_norm(adv - inputs.to(device)).sum().item()
+            print('DDN (n-step = {:.0f}) done in Success: {:.2f}%, Mean L2: {:.4f}.'.format(
+                n_step,
+                100.*adv_correct/total,
+                adv_norm/total
+            ))
+        dists[model].append(adv_norm/total)
+        losses[model].append(loss_epoch)
+        if k == 15:
+            torchvision.utils.save_image(inputs[0]/2.+0.5, 'clean1.png')
+            torchvision.utils.save_image(inputs[1]/2.+0.5, 'clean2.png')
+            torchvision.utils.save_image(adv[0]/2.+0.5, '%s_adv1.png'%model)
+            torchvision.utils.save_image(adv[1]/2.+0.5, '%s_adv2.png'%model)
 
 
-torchvision.utils.save_image(inputs[0]/2.+0.5, 'clean1.png')
-torchvision.utils.save_image(inputs[1]/2.+0.5, 'clean2.png')
-torchvision.utils.save_image(adv[0]/2.+0.5, 'fc_adv1.png')
-torchvision.utils.save_image(adv[1]/2.+0.5, 'fc_adv2.png')
-torchvision.utils.save_image(adv[0]/2.+0.5, 'conv_adv1.png')
-torchvision.utils.save_image(adv[1]/2.+0.5, 'conv_adv2.png')
 
-net.features[0].bias.grad
-net.features[0].weight.data[0, 0]
-net.features[1].weight.data[0].abs().argmax()
-net.features[1].weight.grad
-classifier = PyTorchClassifier(
-    model=net,
-    loss=criterion,
-    optimizer=optimizer,
-    clip_values=(0., 1.),
-    input_shape=(1, k, k),
-    nb_classes=2,
-)
-print("Accuracy on clean test examples: {:.2f}%".format(best_acc))
-
-inputs, targets = torch_batch
-attack_params = [[2, [0.5, 1, 1.5, 2, 2.5]], [np.inf, [0.5, 0.6, 0.7, 0.8, 0.9]]]
-attack_params = [[2, [i*15+30 for i in range(5)]], [np.inf, [0.5, 0.6, 0.7, 0.8, 0.9]]]
-for norm, epsilons in attack_params:
-    for epsilon in epsilons:
-        # attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
-        attack = ProjectedGradientDescentPyTorch(estimator=classifier, eps=epsilon, norm=norm)
-        adv_correct = 0
-        total = 0
-        inputs_adv = attack.generate(x=inputs)
-        adv_predicted = classifier.predict(inputs_adv).argmax(1)
-        adv_correct += (adv_predicted==targets.numpy()).sum().item()
-        total += targets.size(0)
-        print("Accuracy on adversarial test examples (L_{:.0f}, eps={:.2f}): {:.2f}%".format(norm, epsilon, 100.*adv_correct/total))
-
-import matplotlib
-import matplotlib.pyplot as plt
-
-FCN_accs = [1.0039215087890625, 0.9850332140922546, 0.976715087890625, 0.9680507183074951, 0.971983790397644, 
-            0.9777611494064331, 0.9765254855155945, 0.9740734696388245, 0.9753726720809937, 0.9727703928947449, 
-            0.9746283292770386, 0.9760518670082092, 0.9730303287506104, 0.9819855093955994, 0.9761784076690674]
-
-CNN_accs = [1.0039215087890625, 0.33606475591659546, 0.203160360455513, 0.1456798017024994, 0.11684942245483398, 
-            0.10624721646308899, 0.08942484855651855, 0.07604095339775085, 0.06655122339725494, 0.07440652698278427, 
-            0.08225951343774796, 0.09011077880859375, 0.09796074032783508, 0.10580970346927643, 0.11365785449743271]
+FCN_dists = dists['FC']
+CNN_dists = dists['Conv']
 
 CAND_COLORS = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f', '#ff7f00','#cab2d6','#6a3d9a', '#90ee90', '#9B870C', '#2f4554', '#61a0a8', '#d48265', '#c23531']
 colors1 = CAND_COLORS[::2]
@@ -272,8 +208,8 @@ with plt.style.context('bmh'):
     plt.clf()
     ks = [i*2 + 1 for i in range(15)]
     ax = plt.subplot(111)
-    plt.plot(ks, FCN_accs[:15], marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
-    plt.plot(ks, CNN_accs[:15], marker='^', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
+    plt.plot(ks, FCN_dists[:15], marker='o', linewidth=3, markersize=8, label='FCN', color=colors2[0], alpha=0.8)
+    plt.plot(ks, CNN_dists[:15], marker='^', linewidth=3, markersize=8, label='CNN', color=colors2[2], alpha=0.8)
     plt.plot(ks, [1.0/(i*2+1) for i in range(15)], linestyle='dotted', marker='*', linewidth=3, markersize=8, label='CNTKKKK', color=colors2[1], alpha=0.8)
     # plt.tight_layout()
     box = ax.get_position()
@@ -282,29 +218,4 @@ with plt.style.context('bmh'):
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.178), ncol=3)
     # plt.ylabel('average distance of attack')
     # plt.xlabel('image width')
-    plt.savefig('/vulcanscratch/songweig/plots/adv_pool/toy2.png')
-
-
-
-
-for i in range(4):
-    plt.clf()
-    plt.imshow(batch[0][i][0], cmap='gray')
-    plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/sincos%d.png'%i)
-
-
-import cv2
-import numpy as np
-from PIL import Image
-
-
-for i in range(2):
-    # plt.clf()
-    # plt.imshow((batch[0][i][0]+1)/2., cmap='gray')
-    # plt.axis('off')
-    # plt.savefig('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
-    img = np.ones([150, 150])*0.5
-    img[70:80, 70:80] = i
-    # im = Image.fromarray(np.uint8((batch[0][i][0]+1)/2* 255), 'L')
-    im = Image.fromarray(np.uint8(img* 255), 'L')
-    im.save('/vulcanscratch/songweig/plots/adv_pool/synthetic/twodots%d.png'%i)
+    plt.savefig('figure1.png')

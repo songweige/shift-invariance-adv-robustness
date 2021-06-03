@@ -29,23 +29,20 @@ parser.add_argument('--n_data', default=50000, type=int, help='level of verbos')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
 parser.add_argument('--log_dir', help='name and directory for the log file',
-                    default='/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm')
+                    default='./logs/adv_pool/imagenet_unnorm')
 parser.add_argument('--model_path', help='location of the model checkpoint',
-                    default='/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/')
+                    default='./ckpts/vit/')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Data
 print('==> Preparing data..')
-# traindir = os.path.join('/fs/vulcan-datasets/imagenet/', 'train')
-# traindir =  '/vulcanscratch/songweig/datasets/imagenet/train_subset'
-valdir = os.path.join('/fs/vulcan-datasets/imagenet/', 'val')
+valdir = os.path.join('./imagenet/', 'val')
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 log_dir = args.log_dir
-# os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
 attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
 # attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 
@@ -129,7 +126,6 @@ config['num_classes'] = 1000
 #              dropout_rate=config['dropout_rate'])
 
 
-# ckpt_file = torch.load(os.path.join('/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit/', '%s.pth'%model_name))
 # net.load_state_dict(ckpt_file['state_dict'])
 # net = net.to(device)
 # net.eval()

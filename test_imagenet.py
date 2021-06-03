@@ -35,9 +35,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Data
 print('==> Preparing data..')
-# traindir = os.path.join('/fs/vulcan-datasets/imagenet/', 'train')
-traindir =  '/vulcanscratch/songweig/datasets/imagenet/train_subset'
-valdir = os.path.join('/fs/vulcan-datasets/imagenet/', 'val')
+traindir =  './datasets/imagenet/train_subset'
+valdir = os.path.join('./imagenet/', 'val')
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
@@ -66,8 +65,8 @@ val_loader = torch.utils.data.DataLoader(
     num_workers=10, pin_memory=True)
 
 
-log_dir = '/vulcanscratch/songweig/logs/adv_pool/imagenet_unnorm'
-os.environ['TORCH_HOME'] = '/vulcanscratch/songweig/ckpts/pytorch_imagenet'
+log_dir = './logs/adv_pool/imagenet_unnorm'
+os.environ['TORCH_HOME'] = './ckpts/pytorch_imagenet'
 attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
 attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 

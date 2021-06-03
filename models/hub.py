@@ -21,6 +21,7 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
+cache_dir = './chkpts/vit'
 
 def get_cache_dir(child_dir=''):
     """
@@ -33,7 +34,7 @@ def get_cache_dir(child_dir=''):
     hub_dir = get_dir()
     child_dir = () if not child_dir else (child_dir,)
     # model_dir = os.path.join(hub_dir, 'checkpoints', *child_dir)
-    model_dir = '/fs/vulcan-projects/contrastive_learning_songweig/ckpts/vit'
+    model_dir = cache_dir
     os.makedirs(model_dir, exist_ok=True)
     return model_dir
 

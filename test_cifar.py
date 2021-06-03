@@ -58,13 +58,13 @@ transform_test = transforms.Compose([
 
 if args.n_data<50000:
     trainSet = torchvision.datasets.CIFAR10(
-        root='/fs/vulcan-datasets/CIFAR/', train=True, download=True, transform=transform_test)
+        root='./CIFAR/', train=True, download=True, transform=transform_test)
     trainSet = torch.utils.data.Subset(trainSet, indices=np.arange(args.n_data))
     trainloader = torch.utils.data.DataLoader(
         trainSet, batch_size=100, shuffle=False, num_workers=2)
     
 testset = torchvision.datasets.CIFAR10(
-    root='/fs/vulcan-datasets/CIFAR/', train=False, download=True, transform=transform_test)
+    root='./CIFAR/', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False, num_workers=2)
 
@@ -99,11 +99,10 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
 
 if args.n_data < 50000:
-    checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s_%d.pth'%(args.model, args.n_data))
+    checkpoint = torch.load('./ckpts/adv_pool/cifar10/%s_%d.pth'%(args.model, args.n_data))
     logger.info("Accuracy on clean train examples: {:.2f}%".format(checkpoint['train_acc']))
 else:
     checkpoint = torch.load(os.path.join(args.model_path, args.model+'.pth'))
-    # checkpoint = torch.load('/vulcanscratch/songweig/ckpts/adv_pool/cifar10/%s.pth'%args.model)
 if 'net' in checkpoint.keys():
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
