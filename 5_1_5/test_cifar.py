@@ -129,15 +129,10 @@ else:
 
 logger.info("Accuracy on clean test examples: {:.2f}%".format(best_acc))
 
-# attack_params = [[2, [32/256., 64./256., 128./256, 256/256, 1.5]], [np.inf, [1/256., 2/256., 4/256., 8/256., 16/256.]]]
-# attack_params = [[2, [0.5, 1.0, 1.5, 2.0]], [np.inf, [2/256., 4/256., 8/256., 16/256.]]]
-# attack_params = [[2, [1, 2, 3, 4, 5]], [np.inf, [0.1, 0.2, 0.3, 0.4, 0.5]]]
 attack_params = [[2, [0., 0.1, 0.2, 0.3, 0.4]], [np.inf, [0., 0.5/255., 1./255., 2./255., 4./255.]]]
-# import ipdb;ipdb.set_trace()
 
 for norm, epsilons in attack_params:
     for epsilon in epsilons:
-        # attack = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
         if epsilon == 0:
             eps_step = 1e-8
         else:

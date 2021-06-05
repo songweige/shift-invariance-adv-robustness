@@ -12,11 +12,8 @@ import os
 import argparse
 import numpy as np
 
-from models import *
-from models.simple import *
+from simple import *
 from utils import progress_bar
-
-from DDN import DDN
 
 from art.attacks.evasion import FastGradientMethod
 from art.attacks.evasion import ProjectedGradientDescentPyTorch
@@ -67,8 +64,6 @@ def squared_l2_norm(x: torch.Tensor) -> torch.Tensor:
 
 def l2_norm(x: torch.Tensor) -> torch.Tensor:
     return squared_l2_norm(x).sqrt()
-
-resnet_dict = {'18':ResNet_MNIST_18, '34':ResNet_MNIST_34, '50':ResNet_MNIST_50, '101':ResNet_MNIST_101, '152':ResNet_MNIST_152}
 
 # Model
 if args.model == 'FC':

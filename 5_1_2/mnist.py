@@ -11,8 +11,7 @@ import torchvision.transforms as transforms
 import os
 import argparse
 
-from models import *
-from models.simple import *
+from simple import *
 from utils import progress_bar
 
 
@@ -53,8 +52,6 @@ testset = torchvision.datasets.MNIST(
     root='../datasets/mnist', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False, num_workers=2)
-
-resnet_dict = {'18':ResNet_MNIST_18, '34':ResNet_MNIST_34, '50':ResNet_MNIST_50, '101':ResNet_MNIST_101, '152':ResNet_MNIST_152}
 
 # Model
 if args.model == 'FC':

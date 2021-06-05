@@ -44,7 +44,6 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 
 log_dir = args.log_dir
 attack_params = [[2, [0.125, 0.25, 0.5, 1]], [np.inf, [0.5/255., 1/255., 2/255., 4/255.]]]
-# attack_params = [[attack[0], [eps/0.229 for eps in attack[1]]] for attack in attack_params]
 
 criterion = nn.CrossEntropyLoss()
 val_loader = torch.utils.data.DataLoader(
@@ -110,32 +109,8 @@ def get_vit_config(model_name):
 
 # Model
 model_names = ['ViT_B_16', 'ViT_B_32', 'ViT_L_16', 'ViT_L_32']
-model_name = 'ViT_B_16'
-config = get_vit_config(model_name)
-config['image_size'] = 384
-config['num_classes'] = 1000
-# net = vit.VisionTransformer(
-#              image_size=(config['image_size'], config['image_size']),
-#              patch_size=(config['patch_size'], config['patch_size']),
-#              emb_dim=config['emb_dim'],
-#              mlp_dim=config['mlp_dim'],
-#              num_heads=config['num_heads'],
-#              num_layers=config['num_layers'],
-#              num_classes=config['num_classes'],
-#              attn_dropout_rate=config['attn_dropout_rate'],
-#              dropout_rate=config['dropout_rate'])
 
-
-# net.load_state_dict(ckpt_file['state_dict'])
-# net = net.to(device)
-# net.eval()
-# if device == 'cuda':
-#     # net = torch.nn.DataParallel(net)
-#     net = net.cuda()
-#     cudnn.benchmark = True
-
-
-for model_name in model_names[1:2]:
+for model_name in model_names:
     print(model_name)
     config = get_vit_config(model_name)
     config['image_size'] = 384
@@ -217,9 +192,6 @@ def get_bit_model(model_name):
 
 
 model_names = ['BiT_resnet_50x1', 'BiT_resnet_50x3', 'BiT_resnet_101x1', 'BiT_resnet_101x3', 'BiT_resnet_152x2', 'BiT_resnet_152x4']
-model_name = 'BiT_resnet_50x1'
-net = resnet_bit.resnetv2_50x1_bitm(pretrained=True)
-net = get_bit_model(model_name)
 
 for model_name in model_names[5:6]:
     print(model_name)
@@ -250,7 +222,6 @@ for model_name in model_names[5:6]:
     )
     for norm, epsilons in attack_params[:1]:
         for epsilon in epsilons:
-            # attack_FGM = FastGradientMethod(estimator=classifier, eps=epsilon, norm=norm)
             attack_PGD = ProjectedGradientDescentPyTorch(estimator=classifier, max_iter=10, batch_size=100, eps_step=epsilon/5, eps=epsilon, norm=norm)
             # adv_correct_FGM = 0
             adv_correct_PGD = 0
@@ -271,26 +242,26 @@ for model_name in model_names[5:6]:
             fw.write("Accuracy on PGD test examples (L_{:.0f}, eps={:.2f}): {:.2f}%\n".format(norm, epsilon, 100.*adv_correct_PGD/total))
 
 
-consistency = 0
-total = 0
-for batch_idx, (inputs, targets) in enumerate(val_loader):
-    shift0 = np.random.randint(384,size=2)
-    inputs_shift_v0 = torch.zeros([16, 3, 384, 384])
-    inputs_shift_hv0 = torch.zeros([16, 3, 384, 384])
-    inputs_shift_v0[:, :, :, :shift0[0]] = inputs[:, :, :, (384-shift0[0]):].clone()
-    inputs_shift_v0[:, :, :, shift0[0]:] = inputs[:, :, :, :(384-shift0[0])].clone()
-    inputs_shift_hv0[:, :, :shift0[1], :] = inputs_shift_v0[:, :, (384-shift0[1]):, :]
-    inputs_shift_hv0[:, :, shift0[1]:, :] = inputs_shift_v0[:, :, :(384-shift0[1]), :]
-    predicted0 = net(inputs_shift_hv0.cuda()).argmax(1)
-    shift1 = np.random.randint(384,size=2)
-    inputs_shift_v1 = torch.zeros([16, 3, 384, 384])
-    inputs_shift_hv1 = torch.zeros([16, 3, 384, 384])
-    inputs_shift_v1[:, :, :, :shift1[0]] = inputs[:, :, :, (384-shift1[0]):].clone()
-    inputs_shift_v1[:, :, :, shift1[0]:] = inputs[:, :, :, :(384-shift1[0])].clone()
-    inputs_shift_hv1[:, :, :shift1[1], :] = inputs_shift_v1[:, :, (384-shift1[1]):, :]
-    inputs_shift_hv1[:, :, shift1[1]:, :] = inputs_shift_v1[:, :, :(384-shift1[1]), :]
-    predicted1 = net(inputs_shift_hv1.cuda()).argmax(1)
-    consistency += (predicted0==predicted1).sum().item()
-    total += targets.size(0)
+# consistency = 0
+# total = 0
+# for batch_idx, (inputs, targets) in enumerate(val_loader):
+#     shift0 = np.random.randint(384,size=2)
+#     inputs_shift_v0 = torch.zeros([16, 3, 384, 384])
+#     inputs_shift_hv0 = torch.zeros([16, 3, 384, 384])
+#     inputs_shift_v0[:, :, :, :shift0[0]] = inputs[:, :, :, (384-shift0[0]):].clone()
+#     inputs_shift_v0[:, :, :, shift0[0]:] = inputs[:, :, :, :(384-shift0[0])].clone()
+#     inputs_shift_hv0[:, :, :shift0[1], :] = inputs_shift_v0[:, :, (384-shift0[1]):, :]
+#     inputs_shift_hv0[:, :, shift0[1]:, :] = inputs_shift_v0[:, :, :(384-shift0[1]), :]
+#     predicted0 = net(inputs_shift_hv0.cuda()).argmax(1)
+#     shift1 = np.random.randint(384,size=2)
+#     inputs_shift_v1 = torch.zeros([16, 3, 384, 384])
+#     inputs_shift_hv1 = torch.zeros([16, 3, 384, 384])
+#     inputs_shift_v1[:, :, :, :shift1[0]] = inputs[:, :, :, (384-shift1[0]):].clone()
+#     inputs_shift_v1[:, :, :, shift1[0]:] = inputs[:, :, :, :(384-shift1[0])].clone()
+#     inputs_shift_hv1[:, :, :shift1[1], :] = inputs_shift_v1[:, :, (384-shift1[1]):, :]
+#     inputs_shift_hv1[:, :, shift1[1]:, :] = inputs_shift_v1[:, :, :(384-shift1[1]), :]
+#     predicted1 = net(inputs_shift_hv1.cuda()).argmax(1)
+#     consistency += (predicted0==predicted1).sum().item()
+#     total += targets.size(0)
 
-print("Consistency on clean test examples: {:.2f}%".format(100.*consistency/total))
+# print("Consistency on clean test examples: {:.2f}%".format(100.*consistency/total))
