@@ -16,8 +16,6 @@ from models import *
 from models.simple import *
 from utils import progress_bar
 
-from DDN import DDN
-
 from art.attacks.evasion import FastGradientMethod
 from art.attacks.evasion import ProjectedGradientDescentPyTorch
 from art.estimators.classification import PyTorchClassifier
